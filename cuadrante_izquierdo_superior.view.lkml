@@ -3,12 +3,21 @@ view: cuadrante_izquierdo_superior {
     sql:
       WITH
       -- Encontrar la semana máxima disponible en los datos y calcular límite (últimas 6 semanas)
+      -- Filtrar solo semanas hasta la fecha actual para evitar semanas futuras
+      semana_actual_calculada AS (
+        SELECT
+          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
+      ),
       semanas_disponibles AS (
         SELECT DISTINCT semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        CROSS JOIN semana_actual_calculada
         WHERE fecha_contable IS NOT NULL
           AND Tipo_Cambio IS NOT NULL
           AND semana IS NOT NULL
+          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND fecha_contable <= CURRENT_DATE()
         ORDER BY semana DESC
         LIMIT 6
       ),
