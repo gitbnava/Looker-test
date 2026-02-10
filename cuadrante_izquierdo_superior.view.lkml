@@ -1,6 +1,7 @@
 view: cuadrante_izquierdo_superior {
   derived_table: {
     sql:
+      WITH
       -- Encontrar la semana máxima disponible en los datos y calcular límite (últimas 6 semanas)
       semanas_disponibles AS (
         SELECT DISTINCT semana
