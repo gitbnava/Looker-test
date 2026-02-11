@@ -6,7 +6,44 @@ view: cuadrante_superior_derecha {
       -- Bubble Chart: Indice Precio vs Spread por Semana
       -- =====================================================
 
-      WITH datos_base AS (
+      WITH
+      -- Calcular la semana actual para filtrar semanas futuras
+      semana_actual_calculada AS (
+        SELECT
+          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
+      ),
+      -- Encontrar las últimas 6 semanas disponibles con datos válidos
+      semanas_disponibles AS (
+        SELECT DISTINCT semana
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        CROSS JOIN semana_actual_calculada
+        WHERE fecha_contable IS NOT NULL
+          AND semana IS NOT NULL
+          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND fecha_contable <= CURRENT_DATE()
+          AND (
+            spread IS NOT NULL
+            OR (
+              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+              AND precio_pulso IS NOT NULL
+              AND SAFE_CAST(precio_pulso AS FLOAT64) > 0
+            )
+          )
+          AND toneladas_facturadas IS NOT NULL
+          AND SAFE_CAST(toneladas_facturadas AS FLOAT64) > 0
+        ORDER BY semana DESC
+        LIMIT 6
+      ),
+      semana_limite AS (
+        SELECT MIN(semana) AS semana_limite_str
+        FROM semanas_disponibles
+      ),
+
+      datos_base AS (
         SELECT
           semana,
           mes,
@@ -14,21 +51,38 @@ view: cuadrante_superior_derecha {
           trimestre,
           nombre_periodo_mostrar,
           fecha_contable,
-          CAST(spread AS FLOAT64) AS spread,
-          CAST(costo_mp AS FLOAT64) AS costo_mp,
-          CAST(precio_caida_pedidos AS FLOAT64) AS precio_caida_pedidos,
-          CAST(precio_pulso AS FLOAT64) AS precio_pulso,
-          CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
-          CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
+          SAFE_CAST(spread AS FLOAT64) AS spread,
+          SAFE_CAST(costo_mp AS FLOAT64) AS costo_mp,
+          -- Calcular precio_caida_pedidos según la fórmula proporcionada
+          CASE
+            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+            THEN SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) *
+                 SAFE_DIVIDE(SAFE_CAST(imp_precio_entrega_mn AS FLOAT64),
+                             SAFE_CAST(toneladas_pedidas AS FLOAT64))
+            ELSE NULL
+          END AS precio_caida_pedidos,
+          SAFE_CAST(precio_pulso AS FLOAT64) AS precio_pulso,
+          SAFE_CAST(toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+          SAFE_CAST(imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        CROSS JOIN semana_limite
         WHERE semana IS NOT NULL
           AND fecha_contable IS NOT NULL
+          AND semana >= (SELECT semana_limite_str FROM semana_limite)
           AND (
             spread IS NOT NULL
-            OR (precio_caida_pedidos IS NOT NULL AND precio_pulso IS NOT NULL AND precio_pulso > 0)
+            OR (
+              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
+              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+              AND precio_pulso IS NOT NULL
+              AND SAFE_CAST(precio_pulso AS FLOAT64) > 0
+            )
           )
           AND toneladas_facturadas IS NOT NULL
-          AND CAST(toneladas_facturadas AS FLOAT64) > 0
+          AND SAFE_CAST(toneladas_facturadas AS FLOAT64) > 0
       ),
 
       datos_con_indice AS (
@@ -46,12 +100,7 @@ view: cuadrante_superior_derecha {
           toneladas_facturadas,
           imp_facturado_exworks_mn,
           -- Calcular Indice Precio: precio_caida_pedidos / precio_pulso
-          CASE
-            WHEN precio_pulso IS NOT NULL AND precio_pulso > 0
-             AND precio_caida_pedidos IS NOT NULL AND precio_caida_pedidos > 0
-            THEN precio_caida_pedidos / precio_pulso
-            ELSE NULL
-          END AS indice_precio
+          SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
         FROM datos_base
       ),
 
