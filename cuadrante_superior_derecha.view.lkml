@@ -103,19 +103,23 @@ view: cuadrante_superior_derecha {
           MIN(nombre_periodo_mostrar) AS nombre_periodo_mostrar,
           MIN(fecha_contable) AS fecha_contable_min,
           MAX(fecha_contable) AS fecha_contable_max,
-          -- Promedio de Spread
+          -- Promedio de Spread (solo valores no nulos)
           AVG(spread) AS spread_promedio,
-          -- Promedio de Indice Precio
+          -- Promedio de Indice Precio (solo valores no nulos)
           AVG(indice_precio) AS indice_precio_promedio,
           -- Suma de toneladas para tamaño de burbuja
-          SUM(toneladas_facturadas) AS toneladas_totales,
+          SUM(COALESCE(toneladas_facturadas, 0)) AS toneladas_totales,
           -- Estadísticas adicionales para validación
           COUNT(*) AS registros,
-          COUNT(DISTINCT fecha_contable) AS dias_distintos
+          COUNT(DISTINCT fecha_contable) AS dias_distintos,
+          -- Contar cuántos registros tienen cada valor para debugging
+          COUNT(indice_precio) AS registros_con_indice,
+          COUNT(spread) AS registros_con_spread
         FROM datos_con_indice
-        WHERE indice_precio IS NOT NULL
-          AND spread IS NOT NULL
+        WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
         GROUP BY semana
+        HAVING AVG(indice_precio) IS NOT NULL
+           AND AVG(spread) IS NOT NULL
       )
 
       SELECT
@@ -138,7 +142,6 @@ view: cuadrante_superior_derecha {
       FROM datos_agregados
       WHERE indice_precio_promedio IS NOT NULL
         AND spread_promedio IS NOT NULL
-        AND toneladas_totales > 0
       ORDER BY semana DESC ;;
   }
 
