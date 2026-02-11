@@ -10,6 +10,9 @@ explore: ven_mart_comercial {
 
 }
 
+explore: kpi_volumen_facturacion {
+  label: "volumen_facturacion"
+}
 # explore: precios_importacion {
 #   label: "Precios de importacion"
 # }
