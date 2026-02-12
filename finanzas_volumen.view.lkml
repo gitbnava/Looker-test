@@ -54,6 +54,7 @@ view: kpi_volumen_facturacion {
         FROM base_mensual
       ),
       -- Comparativos: mismo mes año anterior y mes anterior (LAG)
+      -- PARTITION BY número de mes (1-12), no por mes YYYYMM, para que mismo mes de años distintos compartan partición
       con_comparativos AS (
         SELECT
           anio,
@@ -65,7 +66,10 @@ view: kpi_volumen_facturacion {
           acum_facturado_ytd,
           acum_pvo_ytd,
           acum_bp_ytd,
-          LAG(volumen) OVER (PARTITION BY mes ORDER BY anio) AS volumen_anio_ant,
+          LAG(volumen) OVER (
+            PARTITION BY CAST(SUBSTR(CAST(mes AS STRING), 5, 2) AS INT64)
+            ORDER BY anio
+          ) AS volumen_anio_ant,
           LAG(volumen) OVER (ORDER BY anio, mes) AS volumen_mes_ant
         FROM con_ytd
       )
