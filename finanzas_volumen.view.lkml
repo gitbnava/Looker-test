@@ -83,8 +83,9 @@ view: kpi_volumen_facturacion {
         ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_bp_ytd) * 100, 2) AS pct_bp_acumulada,
         ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_pvo_ytd) * 100, 2) AS pct_pvo_tc,
         ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_bp_ytd) * 100, 2) AS pct_bp_tc,
-        -- Acum vs Avance del mes: ratio acumulado real vs acumulado BP (avance plan)
-        ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_bp_ytd) * 100, 2) AS acum_vs_avance_del_mes,
+        -- Acum vs Avance del mes: uno por fila del cuadrante (PVO y BP)
+        ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_pvo_ytd) * 100, 2) AS acum_vs_avance_del_mes_pvo,
+        ROUND(SAFE_DIVIDE(acum_facturado_ytd, acum_bp_ytd) * 100, 2) AS acum_vs_avance_del_mes_bp,
         -- Vs Año Ant y Vs Mes Ant (diferencias en unidades)
         ROUND(volumen - volumen_anio_ant, 2) AS vs_anio_ant,
         ROUND(volumen - volumen_mes_ant, 2) AS vs_mes_ant,
@@ -157,11 +158,18 @@ view: kpi_volumen_facturacion {
     description: "% BP TC (to date, mismo que BP Acumulada)"
   }
 
-  measure: acum_vs_avance_del_mes {
+  measure: acum_vs_avance_del_mes_pvo {
     type: average
-    sql: ${TABLE}.acum_vs_avance_del_mes ;;
+    sql: ${TABLE}.acum_vs_avance_del_mes_pvo ;;
     value_format_name: decimal_2
-    description: "Acumulado vs Avance del mes (% real YTD vs BP YTD)"
+    description: "Acum vs Avance del mes - fila PVO (% real YTD vs PVO YTD)"
+  }
+
+  measure: acum_vs_avance_del_mes_bp {
+    type: average
+    sql: ${TABLE}.acum_vs_avance_del_mes_bp ;;
+    value_format_name: decimal_2
+    description: "Acum vs Avance del mes - fila BP (% real YTD vs BP YTD)"
   }
 
   measure: vs_anio_ant {
