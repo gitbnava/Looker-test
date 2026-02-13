@@ -206,6 +206,13 @@ view: cuadrante_superior_derecha {
     description: "Índice de precio (precio_caida / pulso)"
   }
 
+  dimension: indice_precio_dim {
+    type: number
+    sql: ${TABLE}.indice_precio ;;
+    value_format_name: decimal_4
+    description: "Índice de precio (precio_caida / pulso)"
+  }
+
   # ============================================
   # MEASURES (Valores numéricos calculables)
   # ============================================
