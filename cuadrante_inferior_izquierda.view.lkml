@@ -34,7 +34,6 @@ view: cuadrante_izquierdo_inferior {
               AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
             )
             OR Platts_total IS NOT NULL
-            OR senal_de_precio IS NOT NULL
             OR precio_senial IS NOT NULL
             OR toneladas_pvo IS NOT NULL
             OR toneladas_facturadas IS NOT NULL
@@ -73,7 +72,7 @@ view: cuadrante_izquierdo_inferior {
             ELSE NULL
           END AS precio_caida_pedidos,
           SAFE_CAST(v.Platts_total AS FLOAT64) AS platts_total,
-          SAFE_CAST(v.senal_de_precio AS FLOAT64) AS senal_de_precio,
+          SAFE_CAST(v.precio_senial AS FLOAT64) AS senal_de_precio,
           SAFE_CAST(v.precio_senial AS FLOAT64) AS precio_senial,
           SAFE_CAST(v.toneladas_pvo AS FLOAT64) AS toneladas_pvo,
           SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
