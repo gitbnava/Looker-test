@@ -16,12 +16,12 @@ view: cuadrante_izquierdo_inferior {
       ),
       -- Encontrar las últimas 6 semanas disponibles con datos válidos
       semanas_disponibles AS (
-        SELECT DISTINCT semana
+        SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         CROSS JOIN semana_actual_calculada
         WHERE fecha IS NOT NULL
-          AND semana IS NOT NULL
-          AND semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+          AND anio_semana IS NOT NULL
+          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
           AND fecha <= CURRENT_DATE()
           AND Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
@@ -39,14 +39,14 @@ view: cuadrante_izquierdo_inferior {
             OR toneladas_pvo IS NOT NULL
             OR toneladas_facturadas IS NOT NULL
           )
-        ORDER BY semana DESC
+        ORDER BY anio_semana DESC
         LIMIT 6
       ),
 
       -- Una sola lectura de tabla base con todos los campos necesarios
       datos_base_unificados AS (
         SELECT
-          v.semana,
+          v.anio_semana AS semana,
           v.anio_mes AS mes,
           v.anio,
           v.trimestre,
@@ -80,9 +80,9 @@ view: cuadrante_izquierdo_inferior {
           SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
           SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
-        WHERE v.semana IS NOT NULL
+        WHERE v.anio_semana IS NOT NULL
           AND v.fecha IS NOT NULL
-          AND v.semana IN (SELECT semana FROM semanas_disponibles)
+          AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND v.Tipo_Cambio IS NOT NULL
           AND SAFE_CAST(v.Tipo_Cambio AS FLOAT64) > 0
       ),
