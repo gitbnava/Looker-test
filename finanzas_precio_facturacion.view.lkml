@@ -7,7 +7,7 @@
 # Precio: importe destino mn (ExWorks) / toneladas. Spread: Precio Exworks - Costo MP.
 # EBIT: Utilidad bruta - Fletes - SG&A - S&H. % EBIT: EBIT / Ventas × 100.
 # =====================================================
-# Ventana de periodos: todo el año 2025 + 2026 hasta la fecha actual.
+# Ventana de periodos: fecha actual menos 5 meses hasta la fecha actual.
 # =====================================================
 
 view: kpi_precio_facturacion {
@@ -46,14 +46,8 @@ view: kpi_precio_facturacion {
         WHERE v.anio_mes IS NOT NULL
           AND v.anio IS NOT NULL
           AND v.fecha IS NOT NULL
+          AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 5 MONTH)
           AND v.fecha <= CURRENT_DATE()
-          AND (
-            CAST(v.anio AS INT64) = 2025
-            OR (
-              CAST(v.anio AS INT64) = 2026
-              AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.anio_mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
-            )
-          )
         GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona
       ),
       -- Precio, Spread ($/ton), EBIT ($), % EBIT (fórmula: ingreso_ajustado - costo_venta - fletes - SGA - SH)
