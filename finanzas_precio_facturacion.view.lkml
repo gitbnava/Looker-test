@@ -20,6 +20,13 @@ view: kpi_precio_facturacion {
           v.anio,
           v.anio_mes AS mes,
           MAX(v.nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
           SUM(SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64)) AS importe_exworks_mn,
           SUM(SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS toneladas_facturadas,
           SUM(SAFE_CAST(v.costo_mp AS FLOAT64) * SAFE_CAST(v.toneladas_facturadas AS FLOAT64)) AS costo_mp_ponderado,
@@ -47,7 +54,7 @@ view: kpi_precio_facturacion {
               AND DATE(CAST(v.anio AS INT64), CAST(SUBSTR(CAST(v.anio_mes AS STRING), 5, 2) AS INT64), 1) <= CURRENT_DATE()
             )
           )
-        GROUP BY v.anio, v.anio_mes
+        GROUP BY v.anio, v.anio_mes, v.nom_grupo_estadistico1, v.nom_grupo_estadistico2, v.nom_grupo_estadistico3, v.nom_grupo_estadistico4, v.nom_subdireccion, v.nom_gerencia, v.nom_zona
       ),
       -- Precio, Spread ($/ton), EBIT ($), % EBIT (fórmula: ingreso_ajustado - costo_venta - fletes - SGA - SH)
       con_metricas AS (
@@ -55,6 +62,13 @@ view: kpi_precio_facturacion {
           anio,
           mes,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           importe_exworks_mn,
           toneladas_facturadas,
           SAFE_DIVIDE(importe_exworks_mn, NULLIF(toneladas_facturadas, 0)) AS precio,
@@ -66,28 +80,42 @@ view: kpi_precio_facturacion {
           ) * 100 AS pct_ebit
         FROM base_mensual
       ),
-      -- LAG para comparativos vs mes anterior
+      -- LAG para comparativos vs mes anterior (por segmento)
       con_comparativos AS (
         SELECT
           anio,
           mes,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           importe_exworks_mn,
           toneladas_facturadas,
           precio,
           spread,
           ebit,
           pct_ebit,
-          LAG(precio) OVER (ORDER BY anio, mes) AS precio_mes_ant,
-          LAG(spread) OVER (ORDER BY anio, mes) AS spread_mes_ant,
-          LAG(ebit) OVER (ORDER BY anio, mes) AS ebit_mes_ant,
-          LAG(pct_ebit) OVER (ORDER BY anio, mes) AS pct_ebit_mes_ant
+          LAG(precio) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS precio_mes_ant,
+          LAG(spread) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS spread_mes_ant,
+          LAG(ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS ebit_mes_ant,
+          LAG(pct_ebit) OVER (PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona ORDER BY anio, mes) AS pct_ebit_mes_ant
         FROM con_metricas
       )
       SELECT
         anio,
         mes,
         nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
         ROUND(importe_exworks_mn, 2) AS importe_exworks_mn,
         ROUND(toneladas_facturadas, 2) AS toneladas_facturadas,
         ROUND(precio, 2) AS precio,
@@ -129,6 +157,48 @@ view: kpi_precio_facturacion {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Etiqueta del periodo (ej. Ene-2025)"
+  }
+
+  dimension: nom_grupo_estadistico1 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico1 ;;
+    description: "Nom Grupo Estadistico 1"
+  }
+
+  dimension: nom_grupo_estadistico2 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico2 ;;
+    description: "Nom Grupo Estadistico 2"
+  }
+
+  dimension: nom_grupo_estadistico3 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico3 ;;
+    description: "Nom Grupo Estadistico 3"
+  }
+
+  dimension: nom_grupo_estadistico4 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico4 ;;
+    description: "Nom Grupo Estadistico 4"
+  }
+
+  dimension: nom_subdireccion {
+    type: string
+    sql: ${TABLE}.nom_subdireccion ;;
+    description: "Nom Subdireccion"
+  }
+
+  dimension: nom_gerencia {
+    type: string
+    sql: ${TABLE}.nom_gerencia ;;
+    description: "Nom Gerencia"
+  }
+
+  dimension: nom_zona {
+    type: string
+    sql: ${TABLE}.nom_zona ;;
+    description: "Nom Zona"
   }
 
   # ---------- Medidas principales (cuadrante Precio) ----------
@@ -265,6 +335,6 @@ view: kpi_precio_facturacion {
   }
 
   set: detail {
-    fields: [anio, mes, nombre_periodo_mostrar, precio, vs_mes_ant, pct_cambio, spread, vs_mes_ant_spread, pct_cambio_spread, ebit, vs_mes_ant_ebit, pct_cambio_ebit, pct_ebit, vs_mes_ant_pct_ebit, pct_cambio_pct_ebit, importe_exworks_mn, toneladas_facturadas]
+    fields: [anio, mes, nombre_periodo_mostrar, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, precio, vs_mes_ant, pct_cambio, spread, vs_mes_ant_spread, pct_cambio_spread, ebit, vs_mes_ant_ebit, pct_cambio_ebit, pct_ebit, vs_mes_ant_pct_ebit, pct_cambio_pct_ebit, importe_exworks_mn, toneladas_facturadas]
   }
 }
