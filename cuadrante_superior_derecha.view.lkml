@@ -13,7 +13,7 @@ view: cuadrante_superior_derecha {
           CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
           LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
       ),
-      -- Encontrar las últimas 6 semanas disponibles con datos válidos
+      -- Encontrar las últimas 5 semanas disponibles con datos válidos
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
@@ -34,7 +34,7 @@ view: cuadrante_superior_derecha {
             OR precio_pulso IS NOT NULL
           )
         ORDER BY anio_semana DESC
-        LIMIT 6
+        LIMIT 5
       ),
       datos_base AS (
         SELECT
@@ -43,6 +43,13 @@ view: cuadrante_superior_derecha {
           v.anio,
           v.trimestre,
           v.nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
           v.fecha AS fecha_contable,
           SAFE_CAST(v.spread AS FLOAT64) AS spread,
           SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
@@ -82,6 +89,13 @@ view: cuadrante_superior_derecha {
           anio,
           trimestre,
           nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
           fecha_contable,
           spread,
           costo_mp,
@@ -101,6 +115,13 @@ view: cuadrante_superior_derecha {
           MIN(anio) AS anio,
           MIN(trimestre) AS trimestre,
           MIN(nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+          MIN(nom_grupo_estadistico1) AS nom_grupo_estadistico1,
+          MIN(nom_grupo_estadistico2) AS nom_grupo_estadistico2,
+          MIN(nom_grupo_estadistico3) AS nom_grupo_estadistico3,
+          MIN(nom_grupo_estadistico4) AS nom_grupo_estadistico4,
+          MIN(nom_subdireccion) AS nom_subdireccion,
+          MIN(nom_gerencia) AS nom_gerencia,
+          MIN(nom_zona) AS nom_zona,
           MIN(fecha_contable) AS fecha_contable_min,
           MAX(fecha_contable) AS fecha_contable_max,
           -- Promedio de Spread (solo valores no nulos)
@@ -117,7 +138,7 @@ view: cuadrante_superior_derecha {
           COUNT(spread) AS registros_con_spread
         FROM datos_con_indice
         WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
-        GROUP BY semana
+        GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona
         HAVING AVG(indice_precio) IS NOT NULL
            AND AVG(spread) IS NOT NULL
       )
@@ -128,6 +149,13 @@ view: cuadrante_superior_derecha {
         anio,
         trimestre,
         nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
         fecha_contable_min,
         fecha_contable_max,
         -- Medidas principales para el bubble chart
@@ -199,6 +227,48 @@ view: cuadrante_superior_derecha {
     description: "Fecha contable máxima de la semana"
   }
 
+  dimension: nom_grupo_estadistico1 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico1 ;;
+    description: "Nom Grupo Estadistico 1"
+  }
+
+  dimension: nom_grupo_estadistico2 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico2 ;;
+    description: "Nom Grupo Estadistico 2"
+  }
+
+  dimension: nom_grupo_estadistico3 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico3 ;;
+    description: "Nom Grupo Estadistico 3"
+  }
+
+  dimension: nom_grupo_estadistico4 {
+    type: string
+    sql: ${TABLE}.nom_grupo_estadistico4 ;;
+    description: "Nom Grupo Estadistico 4"
+  }
+
+  dimension: nom_subdireccion {
+    type: string
+    sql: ${TABLE}.nom_subdireccion ;;
+    description: "Nom Subdireccion"
+  }
+
+  dimension: nom_gerencia {
+    type: string
+    sql: ${TABLE}.nom_gerencia ;;
+    description: "Nom Gerencia"
+  }
+
+  dimension: nom_zona {
+    type: string
+    sql: ${TABLE}.nom_zona ;;
+    description: "Nom Zona"
+  }
+
   # ============================================
   # MEASURES (Valores numéricos calculables)
   # ============================================
@@ -255,6 +325,13 @@ view: cuadrante_superior_derecha {
       anio,
       trimestre,
       nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
       fecha_contable_min,
       fecha_contable_max,
       indice_precio,
