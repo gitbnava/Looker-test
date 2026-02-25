@@ -239,7 +239,7 @@ view: tablero_direccion_gii {
 
   measure: fact_ayer {
     type: sum
-    sql: CASE WHEN ${fecha_contable_date} = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    sql: CASE WHEN ${TABLE}.fecha_contable = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
     value_format_name: decimal_2
     description: "Fact Ayer (toneladas facturadas el día anterior)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
