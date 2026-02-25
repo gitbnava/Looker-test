@@ -30,10 +30,12 @@ view: tablero_direccion_gii {
         v.nombre_periodo_mostrar,
         v.fecha AS fecha_contable,
         SAFE_CAST(v.toneladas_pedidas AS FLOAT64) AS toneladas_pedidas,
-        SAFE_DIVIDE(
-          0,
-          NULLIF(SAFE_CAST(v.toneladas_deuda_total AS FLOAT64), 0)
-        ) AS deuda_pm,
+        CASE
+          WHEN SAFE_CAST(v.toneladas_deuda_total AS FLOAT64) IS NOT NULL
+            AND SAFE_CAST(v.toneladas_deuda_total AS FLOAT64) <> 0
+          THEN SAFE_DIVIDE(0, SAFE_CAST(v.toneladas_deuda_total AS FLOAT64))
+          ELSE NULL
+        END AS deuda_pm,
         SAFE_CAST(v.toneladas_deuda_total AS FLOAT64) AS deuda_total,
         SAFE_CAST(v.toneladas_deuda_libre AS FLOAT64) AS deuda_libre,
         SAFE_CAST(v.toneladas_deuda_auto_fleteo AS FLOAT64) AS deuda_autofleteo,
@@ -43,10 +45,16 @@ view: tablero_direccion_gii {
         SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS imp_facturacion_mn,
         SAFE_CAST(v.toneladas_pvo AS FLOAT64) AS toneladas_pvo,
         SAFE_CAST(v.toneladas_business_plan AS FLOAT64) AS toneladas_business_plan,
-        SAFE_DIVIDE(
-          SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-          NULLIF(SAFE_CAST(v.toneladas_facturadas AS FLOAT64), 0)
-        ) AS fact_pm_row
+        CASE
+          WHEN SAFE_CAST(v.toneladas_facturadas AS FLOAT64) IS NOT NULL
+            AND SAFE_CAST(v.toneladas_facturadas AS FLOAT64) <> 0
+            AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+          THEN SAFE_DIVIDE(
+            SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+            SAFE_CAST(v.toneladas_facturadas AS FLOAT64)
+          )
+          ELSE NULL
+        END AS fact_pm_row
       FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
       WHERE v.nom_direccion IS NOT NULL
         AND v.anio IS NOT NULL
@@ -193,7 +201,7 @@ view: tablero_direccion_gii {
     type: average
     sql: ${TABLE}.deuda_pm ;;
     value_format_name: usd
-    description: "Deuda PM (precio medio deuda = importe deuda total mn / toneladas_deuda_total; mientras no exista imp_deuda_total_mn en mart se muestra 0)"
+    description: "Deuda PM (precio medio deuda). Solo filas con toneladas_deuda_total no nulo y distinto de 0."
     drill_fields: [detail*]
   }
 
@@ -239,9 +247,15 @@ view: tablero_direccion_gii {
 
   measure: fact_ayer {
     type: sum
-    sql: CASE WHEN ${TABLE}.fecha_contable = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    sql: CASE
+      WHEN ${TABLE}.fecha_contable = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+        AND ${TABLE}.toneladas_facturadas IS NOT NULL
+        AND ${TABLE}.toneladas_facturadas <> 0
+      THEN ${TABLE}.toneladas_facturadas
+      ELSE 0
+    END ;;
     value_format_name: decimal_2
-    description: "Fact Ayer (toneladas facturadas el día anterior)"
+    description: "Fact Ayer (toneladas facturadas el día anterior; solo valores no nulos y distintos de 0)"
     drill_fields: [detail*]
   }
 
@@ -265,7 +279,7 @@ view: tablero_direccion_gii {
     type: average
     sql: ${TABLE}.fact_pm_row ;;
     value_format_name: usd
-    description: "Fact PM (precio medio facturación = importe/toneladas facturadas; promedio por fila)"
+    description: "Fact PM (precio medio facturación). Solo filas con toneladas_facturadas e importe no nulos y toneladas <> 0."
     drill_fields: [detail*]
   }
 
@@ -303,25 +317,43 @@ view: tablero_direccion_gii {
 
   measure: fact_acum_2023 {
     type: sum
-    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2023 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
+    sql: CASE
+      WHEN SAFE_CAST(${anio} AS INT64) = 2023
+        AND ${TABLE}.toneladas_facturadas IS NOT NULL
+        AND ${TABLE}.toneladas_facturadas <> 0
+      THEN ${TABLE}.toneladas_facturadas
+      ELSE 0
+    END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2023 (toneladas facturadas; solo filas con anio=2023 y sin nulls)"
+    description: "Fact Acum 2023 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
   measure: fact_acum_2024 {
     type: sum
-    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2024 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
+    sql: CASE
+      WHEN SAFE_CAST(${anio} AS INT64) = 2024
+        AND ${TABLE}.toneladas_facturadas IS NOT NULL
+        AND ${TABLE}.toneladas_facturadas <> 0
+      THEN ${TABLE}.toneladas_facturadas
+      ELSE 0
+    END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2024 (toneladas facturadas; solo filas con anio=2024 y sin nulls)"
+    description: "Fact Acum 2024 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
   measure: fact_acum_2025 {
     type: sum
-    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2025 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
+    sql: CASE
+      WHEN SAFE_CAST(${anio} AS INT64) = 2025
+        AND ${TABLE}.toneladas_facturadas IS NOT NULL
+        AND ${TABLE}.toneladas_facturadas <> 0
+      THEN ${TABLE}.toneladas_facturadas
+      ELSE 0
+    END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2025 (toneladas facturadas; solo filas con anio=2025 y sin nulls)"
+    description: "Fact Acum 2025 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
