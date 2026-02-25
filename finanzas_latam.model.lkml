@@ -17,6 +17,10 @@ explore: kpi_volumen_facturacion {
 explore: kpi_precio_facturacion {
   label: "precio_facturacion"
 }
+
+explore: tablero_direccion_gii {
+  label: "direccion_gii"
+}
 # explore: precios_importacion {
 #   label: "Precios de importacion"
 # }
