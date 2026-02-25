@@ -1,13 +1,11 @@
 # =====================================================
 
-
 # Tablero por Dirección y GII (Grupo de inventario)
 # Dashboard: tabla por Dirección (nom_direccion) y GII con métricas
-# de pedidos, desde y deuda. Incluye filtros y drill-down hasta
+# de pedidos y deuda. Incluye filtros y drill-down hasta
 # grupo estadístico 4 y hasta gerencia.
 # Fuente: ven_mart_comercial
 # =====================================================
-
 
 view: tablero_direccion_gii {
   derived_table: {
@@ -30,15 +28,25 @@ view: tablero_direccion_gii {
         v.anio_mes AS mes,
         v.anio_semana AS semana,
         v.nombre_periodo_mostrar,
+        v.fecha_contable AS fecha_contable,
         SAFE_CAST(v.toneladas_pedidas AS FLOAT64) AS toneladas_pedidas,
         SAFE_DIVIDE(
+          0,
+          NULLIF(SAFE_CAST(v.toneladas_deuda_total AS FLOAT64), 0)
+        ) AS deuda_pm,
+        SAFE_CAST(v.toneladas_deuda_total AS FLOAT64) AS deuda_total,
+        SAFE_CAST(v.toneladas_deuda_libre AS FLOAT64) AS deuda_libre,
+        SAFE_CAST(v.toneladas_deuda_auto_fleteo AS FLOAT64) AS deuda_autofleteo,
+        SAFE_CAST(v.toneladas_deuda_mes_resto AS FLOAT64) AS deuda_mes_resto,
+        SAFE_CAST(v.toneladas_deuda_mes_siguiente AS FLOAT64) AS deuda_mes_siguiente,
+        SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+        SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS imp_facturacion_mn,
+        SAFE_CAST(v.toneladas_pvo AS FLOAT64) AS toneladas_pvo,
+        SAFE_CAST(v.toneladas_business_plan AS FLOAT64) AS toneladas_business_plan,
+        SAFE_DIVIDE(
           SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-          NULLIF(SAFE_CAST(v.toneladas_pedidas AS FLOAT64), 0)
-        ) AS desde_pm,
-        SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS desde_total,
-        0 AS desde_libre,
-        0 AS deuda_autorutas,
-        0 AS deuda_metro
+          NULLIF(SAFE_CAST(v.toneladas_facturadas AS FLOAT64), 0)
+        ) AS fact_pm_row
       FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
       WHERE v.nom_direccion IS NOT NULL
         AND v.anio IS NOT NULL
@@ -157,9 +165,15 @@ view: tablero_direccion_gii {
     description: "Período para mostrar (ej. Feb-2026). Usar como filtro Periodo junto con mes/anio/semana."
   }
 
+  dimension_group: fecha_contable {
+    type: time
+    sql: ${TABLE}.fecha_contable ;;
+    description: "Fecha contable (usar fecha_contable_date para filtrar o Fact Ayer)."
+    timeframes: [date]
+  }
+
   # ============================================
-  # MEDIDAS DE LA TABLA (Pedidos Ton, Desde, Deuda)
-  # Los valores del diseño son solo representativos.
+  # MEDIDAS: Pedidos, Deuda, Facturación, PVO, BP, histórico
   # ============================================
 
   measure: count {
@@ -175,43 +189,139 @@ view: tablero_direccion_gii {
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
-  measure: desde_pm {
+  measure: deuda_pm {
     type: average
-    sql: ${TABLE}.desde_pm ;;
+    sql: ${TABLE}.deuda_pm ;;
     value_format_name: usd
-    description: "Desde PM (precio medio por tonelada)"
+    description: "Deuda PM (precio medio deuda = importe deuda total mn / toneladas_deuda_total; mientras no exista imp_deuda_total_mn en mart se muestra 0)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
-  measure: desde_total {
+  measure: deuda_total {
     type: sum
-    sql: ${TABLE}.desde_total ;;
+    sql: ${TABLE}.deuda_total ;;
+    value_format_name: decimal_2
+    description: "Deuda Total (toneladas_deuda_total)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: deuda_libre {
+    type: sum
+    sql: ${TABLE}.deuda_libre ;;
+    value_format_name: decimal_2
+    description: "Deuda Libre (toneladas_deuda_libre)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: deuda_autofleteo {
+    type: sum
+    sql: ${TABLE}.deuda_autofleteo ;;
+    value_format_name: decimal_2
+    description: "Deuda Autofleteo (toneladas_deuda_auto_fleteo)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: deuda_mes_resto {
+    type: sum
+    sql: ${TABLE}.deuda_mes_resto ;;
+    value_format_name: decimal_2
+    description: "Deuda Mes Resto (toneladas_deuda_mes_resto)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: deuda_mes_siguiente {
+    type: sum
+    sql: ${TABLE}.deuda_mes_siguiente ;;
+    value_format_name: decimal_2
+    description: "Deuda Mes Siguiente (toneladas_deuda_mes_siguiente)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_ayer {
+    type: sum
+    sql: CASE WHEN ${fecha_contable_date} = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    value_format_name: decimal_2
+    description: "Fact Ayer (toneladas facturadas el día anterior)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_acum {
+    type: sum
+    sql: ${TABLE}.toneladas_facturadas ;;
+    value_format_name: decimal_2
+    description: "Fact Acum (suma de toneladas facturadas en el periodo)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_acum_importe {
+    type: sum
+    sql: ${TABLE}.imp_facturacion_mn ;;
     value_format_name: usd
-    description: "Desde Total (importe total)"
+    description: "Fact Acum importe (suma imp_precio_entrega_mn). Fact PM = fact_acum_importe / fact_acum (table calc)."
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
-  measure: desde_libre {
-    type: sum
-    sql: ${TABLE}.desde_libre ;;
-    value_format_name: decimal_2
-    description: "Desde Libre. Sustituir por columna real del mart si aplica."
+  measure: fact_pm {
+    type: average
+    sql: ${TABLE}.fact_pm_row ;;
+    value_format_name: usd
+    description: "Fact PM (precio medio facturación = importe/toneladas facturadas; promedio por fila)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
-  measure: deuda_autorutas {
+  measure: pvo {
     type: sum
-    sql: ${TABLE}.deuda_autorutas ;;
+    sql: ${TABLE}.toneladas_pvo ;;
     value_format_name: decimal_2
-    description: "Deuda AutoRutas. Sustituir por columna real del mart si aplica."
+    description: "PVO (toneladas plan de ventas operativo)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
-  measure: deuda_metro {
-    type: sum
-    sql: ${TABLE}.deuda_metro ;;
+  measure: pct_pvo {
+    type: number
+    sql: 100.0 * ${fact_acum} / NULLIF(${pvo}, 0) ;;
     value_format_name: decimal_2
-    description: "Deuda Metro. Sustituir por columna real del mart si aplica."
+    description: "% PVO (Fact Acum / PVO × 100). Formato: decimal; interpretar como %."
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: bp {
+    type: sum
+    sql: ${TABLE}.toneladas_business_plan ;;
+    value_format_name: decimal_2
+    description: "BP (toneladas Budget Plan)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: pct_bp {
+    type: number
+    sql: 100.0 * ${fact_acum} / NULLIF(${bp}, 0) ;;
+    value_format_name: decimal_2
+    description: "% BP (Fact Acum / BP × 100). Formato: decimal; interpretar como %."
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_acum_2023 {
+    type: sum
+    sql: CASE WHEN ${anio} = 2023 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    value_format_name: decimal_2
+    description: "Fact Acum año 2023 (toneladas facturadas)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_acum_2024 {
+    type: sum
+    sql: CASE WHEN ${anio} = 2024 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    value_format_name: decimal_2
+    description: "Fact Acum año 2024 (toneladas facturadas)"
+    drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+  }
+
+  measure: fact_acum_2025 {
+    type: sum
+    sql: CASE WHEN ${anio} = 2025 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    value_format_name: decimal_2
+    description: "Fact Acum año 2025 (toneladas facturadas)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
@@ -229,6 +339,7 @@ view: tablero_direccion_gii {
       mes,
       anio,
       semana,
+      fecha_contable_date,
       nom_gerencia,
       nom_canal,
       nom_subdireccion,
@@ -255,11 +366,23 @@ view: tablero_direccion_gii {
       anio,
       semana,
       pedidos_ton,
-      desde_pm,
-      desde_total,
-      desde_libre,
-      deuda_autorutas,
-      deuda_metro
+      deuda_pm,
+      deuda_total,
+      deuda_libre,
+      deuda_autofleteo,
+      deuda_mes_resto,
+      deuda_mes_siguiente,
+      fact_ayer,
+      fact_acum,
+      fact_acum_importe,
+      fact_pm,
+      pvo,
+      pct_pvo,
+      bp,
+      pct_bp,
+      fact_acum_2023,
+      fact_acum_2024,
+      fact_acum_2025
     ]
   }
 }
