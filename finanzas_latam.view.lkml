@@ -303,25 +303,25 @@ view: tablero_direccion_gii {
 
   measure: fact_acum_2023 {
     type: sum
-    sql: CASE WHEN ${anio} = 2023 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2023 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2023 (toneladas facturadas)"
+    description: "Fact Acum año 2023 (toneladas facturadas; solo filas con anio=2023 y sin nulls)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: fact_acum_2024 {
     type: sum
-    sql: CASE WHEN ${anio} = 2024 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2024 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2024 (toneladas facturadas)"
+    description: "Fact Acum año 2024 (toneladas facturadas; solo filas con anio=2024 y sin nulls)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
   measure: fact_acum_2025 {
     type: sum
-    sql: CASE WHEN ${anio} = 2025 THEN ${TABLE}.toneladas_facturadas ELSE 0 END ;;
+    sql: CASE WHEN SAFE_CAST(${anio} AS INT64) = 2025 THEN COALESCE(${TABLE}.toneladas_facturadas, 0) ELSE 0 END ;;
     value_format_name: decimal_2
-    description: "Fact Acum año 2025 (toneladas facturadas)"
+    description: "Fact Acum año 2025 (toneladas facturadas; solo filas con anio=2025 y sin nulls)"
     drill_fields: [nom_direccion, nom_subdireccion, nom_gerencia, gii, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
   }
 
