@@ -1,5 +1,6 @@
 # =====================================================
 
+
 # Tablero por Dirección y GII (Grupo de inventario)
 # Dashboard: tabla por Dirección (nom_direccion) y GII con métricas
 # de pedidos, desde y deuda. Incluye filtros y drill-down hasta
@@ -34,13 +35,10 @@ view: tablero_direccion_gii {
           SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
           NULLIF(SAFE_CAST(v.toneladas_pedidas AS FLOAT64), 0)
         ) AS desde_pm,
-        --SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS desde_total,
-        -- Sustituir por columna real del mart cuando exista: v.desde_libre
-        --0 AS desde_libre,
-        -- Sustituir por columna real del mart cuando exista: v.deuda_autorutas
-        --0 AS deuda_autorutas,
-        -- Sustituir por columna real del mart cuando exista: v.deuda_metro
-        --0 AS deuda_metro
+        SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS desde_total,
+        0 AS desde_libre,
+        0 AS deuda_autorutas,
+        0 AS deuda_metro
       FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
       WHERE v.nom_direccion IS NOT NULL
         AND v.anio IS NOT NULL
