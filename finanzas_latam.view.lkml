@@ -28,7 +28,7 @@ view: tablero_direccion_gii {
         v.anio_mes AS mes,
         v.anio_semana AS semana,
         v.nombre_periodo_mostrar,
-        v.fecha_contable AS fecha_contable,
+        v.fecha AS fecha_contable,
         SAFE_CAST(v.toneladas_pedidas AS FLOAT64) AS toneladas_pedidas,
         SAFE_DIVIDE(
           0,
