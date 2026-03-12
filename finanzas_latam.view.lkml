@@ -59,6 +59,7 @@ view: tablero_direccion_gii {
       WHERE v.nom_direccion IS NOT NULL
         AND v.anio IS NOT NULL
         AND (v.anio_mes IS NOT NULL OR v.anio_semana IS NOT NULL)
+
     ;;
 
   }
