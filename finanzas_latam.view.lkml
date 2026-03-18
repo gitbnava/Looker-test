@@ -44,23 +44,13 @@ view: tablero_direccion_gii {
         SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
         SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) AS imp_facturacion_mn,
         SAFE_CAST(v.toneladas_pvo AS FLOAT64) AS toneladas_pvo,
-        SAFE_CAST(v.toneladas_business_plan AS FLOAT64) AS toneladas_business_plan,
-        CASE
-          WHEN SAFE_CAST(v.toneladas_facturadas AS FLOAT64) IS NOT NULL
-            AND SAFE_CAST(v.toneladas_facturadas AS FLOAT64) <> 0
-            AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-          THEN SAFE_DIVIDE(
-            SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-            SAFE_CAST(v.toneladas_facturadas AS FLOAT64)
-          )
-          ELSE NULL
-        END AS fact_pm_row
+        SAFE_CAST(v.toneladas_business_plan AS FLOAT64) AS toneladas_business_plan
       FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
       WHERE v.nom_direccion IS NOT NULL
         AND v.anio IS NOT NULL
         AND (v.anio_mes IS NOT NULL OR v.anio_semana IS NOT NULL)
 
-    ;;
+      ;;
 
   }
 
@@ -193,7 +183,7 @@ view: tablero_direccion_gii {
   measure: pedidos_ton {
     type: sum
     sql: ${TABLE}.toneladas_pedidas ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Pedidos Ton (suma de toneladas pedidas)"
     drill_fields: [detail*]
   }
@@ -201,7 +191,7 @@ view: tablero_direccion_gii {
   measure: deuda_pm {
     type: average
     sql: ${TABLE}.deuda_pm ;;
-    value_format_name: usd
+    value_format: "$#,##0"
     description: "Deuda PM (precio medio deuda). Solo filas con toneladas_deuda_total no nulo y distinto de 0."
     drill_fields: [detail*]
   }
@@ -209,7 +199,7 @@ view: tablero_direccion_gii {
   measure: deuda_total {
     type: sum
     sql: ${TABLE}.deuda_total ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Deuda Total (toneladas_deuda_total)"
     drill_fields: [detail*]
   }
@@ -217,7 +207,7 @@ view: tablero_direccion_gii {
   measure: deuda_libre {
     type: sum
     sql: ${TABLE}.deuda_libre ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Deuda Libre (toneladas_deuda_libre)"
     drill_fields: [detail*]
   }
@@ -225,7 +215,7 @@ view: tablero_direccion_gii {
   measure: deuda_autofleteo {
     type: sum
     sql: ${TABLE}.deuda_autofleteo ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Deuda Autofleteo (toneladas_deuda_auto_fleteo)"
     drill_fields: [detail*]
   }
@@ -233,7 +223,7 @@ view: tablero_direccion_gii {
   measure: deuda_mes_resto {
     type: sum
     sql: ${TABLE}.deuda_mes_resto ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Deuda Mes Resto (toneladas_deuda_mes_resto)"
     drill_fields: [detail*]
   }
@@ -241,7 +231,7 @@ view: tablero_direccion_gii {
   measure: deuda_mes_siguiente {
     type: sum
     sql: ${TABLE}.deuda_mes_siguiente ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Deuda Mes Siguiente (toneladas_deuda_mes_siguiente)"
     drill_fields: [detail*]
   }
@@ -255,7 +245,7 @@ view: tablero_direccion_gii {
       THEN ${TABLE}.toneladas_facturadas
       ELSE 0
     END ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Fact Ayer (toneladas facturadas el día anterior; solo valores no nulos y distintos de 0)"
     drill_fields: [detail*]
   }
@@ -263,7 +253,7 @@ view: tablero_direccion_gii {
   measure: fact_acum {
     type: sum
     sql: ${TABLE}.toneladas_facturadas ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "Fact Acum (suma de toneladas facturadas en el periodo)"
     drill_fields: [detail*]
   }
@@ -271,23 +261,23 @@ view: tablero_direccion_gii {
   measure: fact_acum_importe {
     type: sum
     sql: ${TABLE}.imp_facturacion_mn ;;
-    value_format_name: usd
+    value_format: "$#,##0"
     description: "Fact Acum importe (suma imp_precio_entrega_mn). Fact PM = fact_acum_importe / fact_acum (table calc)."
     drill_fields: [detail*]
   }
 
   measure: fact_pm {
-    type: average
-    sql: ${TABLE}.fact_pm_row ;;
-    value_format_name: usd
-    description: "Fact PM (precio medio facturación). Solo filas con toneladas_facturadas e importe no nulos y toneladas <> 0."
+    type: number
+    sql: SAFE_DIVIDE(${fact_acum_importe}, NULLIF(${fact_acum}, 0)) ;;
+    value_format: "$#,##0"
+    description: "Fact PM (precio medio facturación = importe acum / toneladas acum)."
     drill_fields: [detail*]
   }
 
   measure: pvo {
     type: sum
     sql: ${TABLE}.toneladas_pvo ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "PVO (toneladas plan de ventas operativo)"
     drill_fields: [detail*]
   }
@@ -295,15 +285,16 @@ view: tablero_direccion_gii {
   measure: pct_pvo {
     type: number
     sql: 100.0 * ${fact_acum} / NULLIF(${pvo}, 0) ;;
-    value_format_name: decimal_2
-    description: "% PVO (Fact Acum / PVO × 100). Formato: decimal; interpretar como %."
+    value_format: "#,##0\"%\""
+    label: "% PVO"
+    description: "% PVO (Fact Acum / PVO × 100)."
     drill_fields: [detail*]
   }
 
   measure: bp {
     type: sum
     sql: ${TABLE}.toneladas_business_plan ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
     description: "BP (toneladas Budget Plan)"
     drill_fields: [detail*]
   }
@@ -311,36 +302,9 @@ view: tablero_direccion_gii {
   measure: pct_bp {
     type: number
     sql: 100.0 * ${fact_acum} / NULLIF(${bp}, 0) ;;
-    value_format_name: decimal_2
-    description: "% BP (Fact Acum / BP × 100). Formato: decimal; interpretar como %."
-    drill_fields: [detail*]
-  }
-
-  measure: fact_acum_2023 {
-    type: sum
-    sql: CASE
-      WHEN SAFE_CAST(${anio} AS INT64) = 2023
-        AND ${TABLE}.toneladas_facturadas IS NOT NULL
-        AND ${TABLE}.toneladas_facturadas <> 0
-      THEN ${TABLE}.toneladas_facturadas
-      ELSE 0
-    END ;;
-    value_format_name: decimal_2
-    description: "2023 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
-    drill_fields: [detail*]
-  }
-
-  measure: fact_acum_2024 {
-    type: sum
-    sql: CASE
-      WHEN SAFE_CAST(${anio} AS INT64) = 2024
-        AND ${TABLE}.toneladas_facturadas IS NOT NULL
-        AND ${TABLE}.toneladas_facturadas <> 0
-      THEN ${TABLE}.toneladas_facturadas
-      ELSE 0
-    END ;;
-    value_format_name: decimal_2
-    description: "2024 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
+    value_format: "#,##0\"%\""
+    label: "% BP"
+    description: "% BP (Fact Acum / BP × 100)."
     drill_fields: [detail*]
   }
 
@@ -353,8 +317,24 @@ view: tablero_direccion_gii {
       THEN ${TABLE}.toneladas_facturadas
       ELSE 0
     END ;;
-    value_format_name: decimal_2
+    value_format_name: decimal_0
+    label: "2025"
     description: "2025 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
+    drill_fields: [detail*]
+  }
+
+  measure: fact_acum_2026 {
+    type: sum
+    sql: CASE
+      WHEN SAFE_CAST(${anio} AS INT64) = 2026
+        AND ${TABLE}.toneladas_facturadas IS NOT NULL
+        AND ${TABLE}.toneladas_facturadas <> 0
+      THEN ${TABLE}.toneladas_facturadas
+      ELSE 0
+    END ;;
+    value_format_name: decimal_0
+    label: "2026"
+    description: "2026 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
@@ -414,9 +394,8 @@ view: tablero_direccion_gii {
       pct_pvo,
       bp,
       pct_bp,
-      fact_acum_2023,
-      fact_acum_2024,
-      fact_acum_2025
+      fact_acum_2025,
+      fact_acum_2026
     ]
   }
 }
