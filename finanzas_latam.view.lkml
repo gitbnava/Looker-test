@@ -326,7 +326,7 @@ view: tablero_direccion_gii {
       ELSE 0
     END ;;
     value_format_name: decimal_2
-    description: "Fact Acum 2023 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
+    description: "2023 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
@@ -340,7 +340,7 @@ view: tablero_direccion_gii {
       ELSE 0
     END ;;
     value_format_name: decimal_2
-    description: "Fact Acum 2024 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
+    description: "2024 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
@@ -354,7 +354,7 @@ view: tablero_direccion_gii {
       ELSE 0
     END ;;
     value_format_name: decimal_2
-    description: "Fact Acum 2025 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
+    description: "2025 (solo toneladas_facturadas no nulas y distintas de 0 en ese año)"
     drill_fields: [detail*]
   }
 
