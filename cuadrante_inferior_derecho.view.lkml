@@ -73,7 +73,11 @@ view: cuadrante_derecho_inferior {
           zona,
           nom_estado,
           nom_canal,
-          SAFE_DIVIDE(SUM(imp_precio_entrega_mn), NULLIF(SUM(toneladas_facturadas), 0)) AS precio_varilla_destino,
+          -- Solo registros con importe y toneladas positivos para excluir notas de crédito
+          SAFE_DIVIDE(
+            SUM(CASE WHEN imp_precio_entrega_mn > 0 AND toneladas_facturadas > 0 THEN imp_precio_entrega_mn END),
+            NULLIF(SUM(CASE WHEN imp_precio_entrega_mn > 0 AND toneladas_facturadas > 0 THEN toneladas_facturadas END), 0)
+          ) AS precio_varilla_destino,
           AVG(costo_mp) AS costo_mezcla_promedio,
           AVG(spread) AS spread_promedio
         FROM datos_base
@@ -120,8 +124,16 @@ view: cuadrante_derecho_inferior {
           precio_varilla_destino,
           costo_mezcla_promedio,
           spread_promedio,
-          LAG(costo_mezcla_promedio) OVER (ORDER BY orden) AS costo_mezcla_mes_anterior,
-          LAG(spread_promedio) OVER (ORDER BY orden) AS spread_mes_anterior
+          LAG(costo_mezcla_promedio) OVER (
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
+                         nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
+            ORDER BY anio ASC, CAST(mes AS INT64) ASC
+          ) AS costo_mezcla_mes_anterior,
+          LAG(spread_promedio) OVER (
+            PARTITION BY nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4,
+                         nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
+            ORDER BY anio ASC, CAST(mes AS INT64) ASC
+          ) AS spread_mes_anterior
         FROM con_orden
       )
       SELECT
@@ -180,42 +192,49 @@ view: cuadrante_derecho_inferior {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
+    suggestable: no
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
+    suggestable: no
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
+    suggestable: no
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
+    suggestable: no
   }
 
   dimension: nom_cliente {
@@ -223,6 +242,7 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: zona {
@@ -230,6 +250,7 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_estado {
@@ -237,6 +258,7 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_canal {
@@ -244,6 +266,7 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   # ============================================
