@@ -32,67 +32,80 @@ view: cuadrante_izquierdo_superior {
             OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
           )
         ORDER BY anio_semana DESC
-        LIMIT 5
+        LIMIT 6
       ),
       semana_limite AS (
         SELECT MIN(semana) AS semana_limite_str FROM semanas_disponibles
       ),
+      -- Precios de importación agregados por semana (de cualquier fila con esos campos)
+      -- Desacoplado de GE para que funcione con cualquier filtro de producto
+      ref_por_semana AS (
+        SELECT
+          anio_semana AS semana,
+          AVG(SAFE_CAST(Tipo_Cambio AS FLOAT64)) AS Tipo_Cambio,
+          AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) END) AS precio_usd_turkey_rebar,
+          AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) END) AS precio_usd_spain_rebar,
+          AVG(CASE WHEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0 THEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) END) AS precio_usd_malasia_varilla,
+          AVG(CASE WHEN SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) END) AS precio_usd_turkey_angulo,
+          AVG(CASE WHEN SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0 THEN SAFE_CAST(Angulo_Comercial_China AS FLOAT64) END) AS precio_usd_china_angulo,
+          AVG(CASE WHEN SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) END) AS precio_usd_turkey_vigas,
+          AVG(CASE WHEN SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0 THEN SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) END) AS precio_usd_pulso_vigas,
+          AVG(CASE WHEN SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0 THEN SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) END) AS precio_usd_amm_europa,
+          AVG(CASE WHEN SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0 THEN SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) END) AS precio_usd_amm_asia,
+          MAX(Pais_Origen_Pulso_Vigas) AS Pais_Origen_Pulso_Vigas
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        WHERE anio_semana IN (SELECT semana FROM semanas_disponibles)
+          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
+        GROUP BY anio_semana
+      ),
+      -- Todos los registros de las semanas disponibles, sin filtrar por Tipo_Cambio
+      -- Los precios de importación se obtienen del CTE semanal vía JOIN
       precios_internacionales AS (
         SELECT
-          fecha AS fecha_contable,
-          anio_semana AS semana,
-          anio_mes AS mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          nom_grupo_estadistico1,
-          nom_grupo_estadistico2,
-          nom_grupo_estadistico3,
-          nom_grupo_estadistico4,
-          nom_subdireccion,
-          nom_gerencia,
-          nom_zona,
-          nom_cliente_unico AS nom_cliente,
-          nom_zona AS zona,
-          nom_estado_consignado AS nom_estado,
-          nom_canal,
-          SAFE_CAST(Tipo_Cambio AS FLOAT64) AS Tipo_Cambio,
+          v.fecha AS fecha_contable,
+          v.anio_semana AS semana,
+          v.anio_mes AS mes,
+          v.anio,
+          v.trimestre,
+          v.nombre_periodo_mostrar,
+          v.nom_grupo_estadistico1,
+          v.nom_grupo_estadistico2,
+          v.nom_grupo_estadistico3,
+          v.nom_grupo_estadistico4,
+          v.nom_subdireccion,
+          v.nom_gerencia,
+          v.nom_zona,
+          v.nom_cliente_unico AS nom_cliente,
+          v.nom_zona AS zona,
+          v.nom_estado_consignado AS nom_estado,
+          v.nom_canal,
+          r.Tipo_Cambio,
+          -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
           CASE
-            WHEN SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL AND SAFE_CAST(toneladas_pedidas AS FLOAT64) <> 0
-            THEN SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) *
-                 SAFE_DIVIDE(SAFE_CAST(imp_precio_entrega_mn AS FLOAT64), SAFE_CAST(toneladas_pedidas AS FLOAT64))
+            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
+              AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
+            THEN SAFE_DIVIDE(
+              SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+              SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
+            )
             ELSE NULL
           END AS precio_caida_pedidos,
-          SAFE_CAST(precio_pulso AS FLOAT64) AS precio_pulso,
-          SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) AS precio_usd_turkey_rebar,
-          SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) AS precio_usd_spain_rebar,
-          SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) AS precio_usd_malasia_varilla,
-          SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) AS precio_usd_turkey_angulo,
-          SAFE_CAST(Angulo_Comercial_China AS FLOAT64) AS precio_usd_china_angulo,
-          SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) AS precio_usd_turkey_vigas,
-          SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) AS precio_usd_pulso_vigas,
-          SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) AS precio_usd_amm_europa,
-          SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) AS precio_usd_amm_asia,
-          Pais_Origen_Pulso_Vigas
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_limite
-        WHERE fecha IS NOT NULL
-          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-          AND Tipo_Cambio IS NOT NULL
-          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND anio_semana >= (SELECT semana_limite_str FROM semana_limite)
-          AND anio_semana IN (SELECT semana FROM semanas_disponibles)
-          AND (
-            (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
-            OR (SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) IS NOT NULL AND SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0)
-            OR (SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Angulo_Comercial_China AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0)
-            OR (SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) IS NOT NULL AND SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0)
-            OR (SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) IS NOT NULL AND SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0)
-            OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
-          )
+          SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
+          r.precio_usd_turkey_rebar,
+          r.precio_usd_spain_rebar,
+          r.precio_usd_malasia_varilla,
+          r.precio_usd_turkey_angulo,
+          r.precio_usd_china_angulo,
+          r.precio_usd_turkey_vigas,
+          r.precio_usd_pulso_vigas,
+          r.precio_usd_amm_europa,
+          r.precio_usd_amm_asia,
+          r.Pais_Origen_Pulso_Vigas
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial` v
+        INNER JOIN ref_por_semana r ON v.anio_semana = r.semana
+        WHERE v.fecha IS NOT NULL
+          AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+          AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
       ),
       -- Una sola pasada con UNNEST en lugar de 9 UNION ALL (menos lecturas del CTE, menos shuffle)
       precios_unificados AS (
@@ -267,42 +280,49 @@ view: cuadrante_izquierdo_superior {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
+    suggestable: no
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
+    suggestable: no
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
+    suggestable: no
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
+    suggestable: no
   }
 
   dimension: nom_cliente {
@@ -310,6 +330,7 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: zona {
@@ -317,6 +338,7 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_estado {
@@ -324,6 +346,7 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_canal {
@@ -331,6 +354,7 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   # ============================================
@@ -343,7 +367,7 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: precio_usd {
-    type: sum
+    type: average
     sql: ${TABLE}.precio_usd ;;
     value_format_name: usd
     description: "Precio en USD"
@@ -378,14 +402,14 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: indice_precio {
-    type: sum
+    type: average
     sql: ${TABLE}.indice_precio ;;
     value_format_name: decimal_4
     description: "Índice de precio (precio_caida / pulso)"
   }
 
   measure: tipo_cambio {
-    type: sum
+    type: average
     sql: ${TABLE}.Tipo_Cambio ;;
     value_format_name: decimal_2
     description: "Tipo de cambio usado para conversión"
