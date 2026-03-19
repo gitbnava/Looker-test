@@ -34,7 +34,7 @@ view: cuadrante_superior_derecha {
             OR precio_pulso IS NOT NULL
           )
         ORDER BY anio_semana DESC
-        LIMIT 5
+        LIMIT 6
       ),
       -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (datos_base → datos_con_indice → datos_agregados → SELECT final) para filtros en tiles
       datos_base AS (
@@ -58,13 +58,14 @@ view: cuadrante_superior_derecha {
           v.fecha AS fecha_contable,
           SAFE_CAST(v.spread AS FLOAT64) AS spread,
           SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
-          -- Calcular precio_caida_pedidos según la fórmula proporcionada
+          -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
           CASE
-            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
-            THEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) *
-                 SAFE_DIVIDE(SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-                             SAFE_CAST(v.toneladas_pedidas AS FLOAT64))
+            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
+              AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
+            THEN SAFE_DIVIDE(
+              SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+              SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
+            )
             ELSE NULL
           END AS precio_caida_pedidos,
           SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
@@ -152,8 +153,8 @@ view: cuadrante_superior_derecha {
         FROM datos_con_indice
         WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
         GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
-        HAVING AVG(indice_precio) IS NOT NULL
-           AND AVG(spread) IS NOT NULL
+        HAVING (AVG(indice_precio) IS NOT NULL
+           OR AVG(spread) IS NOT NULL)
       )
 
       SELECT
@@ -185,8 +186,8 @@ view: cuadrante_superior_derecha {
         -- Formato de semana para etiquetas (ej: "S45" desde "202545")
         CONCAT('S', SUBSTR(CAST(semana AS STRING), -2)) AS semana_label
       FROM datos_agregados
-      WHERE indice_precio_promedio IS NOT NULL
-        AND spread_promedio IS NOT NULL
+      WHERE (indice_precio_promedio IS NOT NULL
+        OR spread_promedio IS NOT NULL)
       ORDER BY semana DESC ;;
   }
 
@@ -248,42 +249,49 @@ view: cuadrante_superior_derecha {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
+    suggestable: no
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
+    suggestable: no
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
+    suggestable: no
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
+    suggestable: no
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
+    suggestable: no
   }
 
   dimension: nom_cliente {
@@ -291,6 +299,7 @@ view: cuadrante_superior_derecha {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: zona {
@@ -298,6 +307,7 @@ view: cuadrante_superior_derecha {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_estado {
@@ -305,6 +315,7 @@ view: cuadrante_superior_derecha {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   dimension: nom_canal {
@@ -312,6 +323,7 @@ view: cuadrante_superior_derecha {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
+    suggestable: no
   }
 
   # ============================================
@@ -364,7 +376,6 @@ view: cuadrante_superior_derecha {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
-
   }
 
   set: detail {
