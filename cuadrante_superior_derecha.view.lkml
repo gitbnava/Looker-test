@@ -57,13 +57,13 @@ view: cuadrante_superior_derecha {
       v.fecha AS fecha_contable,
       SAFE_CAST(v.spread AS FLOAT64) AS spread,
       SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
-      -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_caida_de_pedidos
+      -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
       CASE
-      WHEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) > 0
+      WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
       AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
       THEN SAFE_DIVIDE(
       SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-      SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64)
+      SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
       )
       ELSE NULL
       END AS precio_caida_pedidos,

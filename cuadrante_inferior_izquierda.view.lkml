@@ -27,11 +27,10 @@ view: cuadrante_izquierdo_inferior {
       AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
       AND (
       -- precio_caida_pedidos es calculado; considerar semanas con insumos para calcularlo
-      (
-      SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
-      AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) > 0
-      AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-      )
+      (SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
+      AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
+      AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+      AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL)
       OR Platts_total IS NOT NULL
       OR precio_senial IS NOT NULL
       OR toneladas_pvo IS NOT NULL
@@ -94,13 +93,13 @@ view: cuadrante_izquierdo_inferior {
       r.precio_usd_pulso_vigas,
       r.precio_usd_amm_europa,
       r.precio_usd_amm_asia,
-      -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_caida_de_pedidos
+      -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
       CASE
-      WHEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) > 0
+      WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
       AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
       THEN SAFE_DIVIDE(
       SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-      SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64)
+      SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
       )
       ELSE NULL
       END AS precio_caida_pedidos,
