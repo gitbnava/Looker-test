@@ -9,185 +9,183 @@ view: cuadrante_superior_derecha {
       WITH
       -- Calcular la semana actual para filtrar semanas futuras
       semana_actual_calculada AS (
-        SELECT
-          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
+      SELECT
+      CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
+      LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
       ),
       -- Encontrar las últimas 5 semanas disponibles con datos válidos
       semanas_disponibles AS (
-        SELECT DISTINCT anio_semana AS semana
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_actual_calculada
-        WHERE fecha IS NOT NULL
-          AND anio_semana IS NOT NULL
-          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND fecha <= CURRENT_DATE()
-          AND (
-            spread IS NOT NULL
-            OR (
-              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-            )
-            OR toneladas_facturadas IS NOT NULL
-            OR precio_pulso IS NOT NULL
-          )
-        ORDER BY anio_semana DESC
-        LIMIT 6
+      SELECT DISTINCT anio_semana AS semana
+      FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+      CROSS JOIN semana_actual_calculada
+      WHERE fecha IS NOT NULL
+      AND anio_semana IS NOT NULL
+      AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
+      AND fecha <= CURRENT_DATE()
+      AND (
+      spread IS NOT NULL
+      OR (
+      SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+      AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) > 0
+      AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+      )
+      OR toneladas_facturadas IS NOT NULL
+      OR precio_pulso IS NOT NULL
+      )
+      ORDER BY anio_semana DESC
+      LIMIT 6
       ),
       -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (datos_base → datos_con_indice → datos_agregados → SELECT final) para filtros en tiles
       datos_base AS (
-        SELECT
-          v.anio_semana AS semana,
-          v.anio_mes AS mes,
-          v.anio,
-          v.trimestre,
-          v.nombre_periodo_mostrar,
-          v.nom_grupo_estadistico1,
-          v.nom_grupo_estadistico2,
-          v.nom_grupo_estadistico3,
-          v.nom_grupo_estadistico4,
-          v.nom_subdireccion,
-          v.nom_gerencia,
-          v.nom_zona,
-          v.nom_cliente_unico AS nom_cliente,
-          v.nom_zona AS zona,
-          v.nom_estado_consignado AS nom_estado,
-          v.nom_canal,
-          v.fecha AS fecha_contable,
-          SAFE_CAST(v.spread AS FLOAT64) AS spread,
-          SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
-          -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
-          CASE
-            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
-              AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
-            THEN SAFE_DIVIDE(
-              SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-              SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
-            )
-            ELSE NULL
-          END AS precio_caida_pedidos,
-          SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
-          SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
-          SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
-        WHERE v.anio_semana IS NOT NULL
-          AND v.fecha IS NOT NULL
-          AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
-          AND (
-            v.spread IS NOT NULL
-            OR (
-              SAFE_CAST(v.toneladas_pedidas AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(v.toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-            )
-            OR v.toneladas_facturadas IS NOT NULL
-            OR v.precio_pulso IS NOT NULL
-          )
+      SELECT
+      v.anio_semana AS semana,
+      v.anio_mes AS mes,
+      v.anio,
+      v.trimestre,
+      v.nombre_periodo_mostrar,
+      v.nom_grupo_estadistico1,
+      v.nom_grupo_estadistico2,
+      v.nom_grupo_estadistico3,
+      v.nom_grupo_estadistico4,
+      v.nom_subdireccion,
+      v.nom_gerencia,
+      v.nom_zona,
+      v.nom_cliente_unico AS nom_cliente,
+      v.nom_zona AS zona,
+      v.nom_estado_consignado AS nom_estado,
+      v.nom_canal,
+      v.fecha AS fecha_contable,
+      SAFE_CAST(v.spread AS FLOAT64) AS spread,
+      SAFE_CAST(v.costo_mp AS FLOAT64) AS costo_mp,
+      -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_caida_de_pedidos
+      CASE
+      WHEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) > 0
+      AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
+      THEN SAFE_DIVIDE(
+      SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
+      SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64)
+      )
+      ELSE NULL
+      END AS precio_caida_pedidos,
+      SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
+      SAFE_CAST(v.toneladas_facturadas AS FLOAT64) AS toneladas_facturadas,
+      SAFE_CAST(v.imp_facturado_exworks_mn AS FLOAT64) AS imp_facturado_exworks_mn
+      FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
+      WHERE v.anio_semana IS NOT NULL
+      AND v.fecha IS NOT NULL
+      AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
+      AND (
+      v.spread IS NOT NULL
+      OR (
+      SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
+      AND SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) > 0
+      AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
+      )
+      OR v.toneladas_facturadas IS NOT NULL
+      OR v.precio_pulso IS NOT NULL
+      )
       ),
 
       datos_con_indice AS (
-        SELECT
-          semana,
-          mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          nom_grupo_estadistico1,
-          nom_grupo_estadistico2,
-          nom_grupo_estadistico3,
-          nom_grupo_estadistico4,
-          nom_subdireccion,
-          nom_gerencia,
-          nom_zona,
-          nom_cliente,
-          zona,
-          nom_estado,
-          nom_canal,
-          fecha_contable,
-          spread,
-          costo_mp,
-          precio_caida_pedidos,
-          precio_pulso,
-          toneladas_facturadas,
-          imp_facturado_exworks_mn,
-          -- Calcular Indice Precio: precio_caida_pedidos / precio_pulso
-          SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
-        FROM datos_base
+      SELECT
+      semana,
+      mes,
+      anio,
+      trimestre,
+      nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
+      fecha_contable,
+      spread,
+      costo_mp,
+      precio_caida_pedidos,
+      precio_pulso,
+      toneladas_facturadas,
+      imp_facturado_exworks_mn,
+      -- Calcular Indice Precio: precio_caida_pedidos / precio_pulso
+      SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
+      FROM datos_base
       ),
 
       datos_agregados AS (
-        SELECT
-          semana,
-          MIN(mes) AS mes,
-          MIN(anio) AS anio,
-          MIN(trimestre) AS trimestre,
-          MIN(nombre_periodo_mostrar) AS nombre_periodo_mostrar,
-          nom_grupo_estadistico1,
-          nom_grupo_estadistico2,
-          nom_grupo_estadistico3,
-          nom_grupo_estadistico4,
-          nom_subdireccion,
-          nom_gerencia,
-          nom_zona,
-          nom_cliente,
-          zona,
-          nom_estado,
-          nom_canal,
-          MIN(fecha_contable) AS fecha_contable_min,
-          MAX(fecha_contable) AS fecha_contable_max,
-          -- Promedio de Spread (solo valores no nulos)
-          AVG(spread) AS spread_promedio,
-          -- Promedio de Indice Precio (solo valores no nulos)
-          AVG(indice_precio) AS indice_precio_promedio,
-          -- Suma de toneladas para tamaño de burbuja
-          SUM(COALESCE(toneladas_facturadas, 0)) AS toneladas_totales,
-          -- Estadísticas adicionales para validación
-          COUNT(*) AS registros,
-          COUNT(DISTINCT fecha_contable) AS dias_distintos,
-          -- Contar cuántos registros tienen cada valor para debugging
-          COUNT(indice_precio) AS registros_con_indice,
-          COUNT(spread) AS registros_con_spread
-        FROM datos_con_indice
-        WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
-        GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
-        HAVING (AVG(indice_precio) IS NOT NULL
-           OR AVG(spread) IS NOT NULL)
+      SELECT
+      semana,
+      MIN(mes) AS mes,
+      MIN(anio) AS anio,
+      MIN(trimestre) AS trimestre,
+      MIN(nombre_periodo_mostrar) AS nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
+      MIN(fecha_contable) AS fecha_contable_min,
+      MAX(fecha_contable) AS fecha_contable_max,
+      -- Promedio de Spread (solo valores no nulos)
+      AVG(spread) AS spread_promedio,
+      -- Promedio de Indice Precio (solo valores no nulos)
+      AVG(indice_precio) AS indice_precio_promedio,
+      -- Suma de toneladas para tamaño de burbuja
+      SUM(COALESCE(toneladas_facturadas, 0)) AS toneladas_totales,
+      -- Estadísticas adicionales para validación
+      COUNT(*) AS registros,
+      COUNT(DISTINCT fecha_contable) AS dias_distintos,
+      -- Contar cuántos registros tienen cada valor para debugging
+      COUNT(indice_precio) AS registros_con_indice,
+      COUNT(spread) AS registros_con_spread
+      FROM datos_con_indice
+      WHERE (indice_precio IS NOT NULL OR spread IS NOT NULL)
+      GROUP BY semana, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4, nom_subdireccion, nom_gerencia, nom_zona, nom_cliente, zona, nom_estado, nom_canal
+      HAVING (AVG(indice_precio) IS NOT NULL
+      OR AVG(spread) IS NOT NULL)
       )
 
       SELECT
-        semana,
-        mes,
-        anio,
-        trimestre,
-        nombre_periodo_mostrar,
-        nom_grupo_estadistico1,
-        nom_grupo_estadistico2,
-        nom_grupo_estadistico3,
-        nom_grupo_estadistico4,
-        nom_subdireccion,
-        nom_gerencia,
-        nom_zona,
-        nom_cliente,
-        zona,
-        nom_estado,
-        nom_canal,
-        fecha_contable_min,
-        fecha_contable_max,
-        -- Medidas principales para el bubble chart
-        ROUND(indice_precio_promedio, 4) AS indice_precio,
-        ROUND(spread_promedio, 2) AS spread,
-        ROUND(toneladas_totales, 2) AS toneladas_facturadas,
-        -- Campos adicionales para referencia
-        registros,
-        dias_distintos,
-        -- Formato de semana para etiquetas (ej: "S45" desde "202545")
-        CONCAT('S', SUBSTR(CAST(semana AS STRING), -2)) AS semana_label
+      semana,
+      mes,
+      anio,
+      trimestre,
+      nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
+      fecha_contable_min,
+      fecha_contable_max,
+      -- Medidas principales para el bubble chart
+      ROUND(indice_precio_promedio, 4) AS indice_precio,
+      ROUND(spread_promedio, 2) AS spread,
+      ROUND(toneladas_totales, 2) AS toneladas_facturadas,
+      -- Campos adicionales para referencia
+      registros,
+      dias_distintos,
+      -- Formato de semana para etiquetas (ej: "S45" desde "202545")
+      CONCAT('S', SUBSTR(CAST(semana AS STRING), -2)) AS semana_label
       FROM datos_agregados
       WHERE (indice_precio_promedio IS NOT NULL
-        OR spread_promedio IS NOT NULL)
+      OR spread_promedio IS NOT NULL)
       ORDER BY semana DESC ;;
   }
 

@@ -80,13 +80,13 @@ view: cuadrante_izquierdo_superior {
           v.nom_estado_consignado AS nom_estado,
           v.nom_canal,
           r.Tipo_Cambio,
-          -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
+          -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_caida_de_pedidos
           CASE
-            WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
+            WHEN SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) > 0
               AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
             THEN SAFE_DIVIDE(
               SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
-              SAFE_CAST(v.toneladas_pedidas AS FLOAT64)
+              SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64)
             )
             ELSE NULL
           END AS precio_caida_pedidos,
@@ -152,68 +152,68 @@ view: cuadrante_izquierdo_superior {
       ),
 
       precios_con_calculos AS (
-        SELECT
-          fecha_contable,
-          semana,
-          mes,
-          anio,
-          trimestre,
-          nombre_periodo_mostrar,
-          nom_grupo_estadistico1,
-          nom_grupo_estadistico2,
-          nom_grupo_estadistico3,
-          nom_grupo_estadistico4,
-          nom_subdireccion,
-          nom_gerencia,
-          nom_zona,
-          nom_cliente,
-          zona,
-          nom_estado,
-          nom_canal,
-          referencia_nombre,
-          pais,
-          producto_tipo,
-          precio_usd,
-          precio_mxn,
-          Tipo_Cambio,
-          precio_caida_pedidos AS precio_caida_mxn,
-          precio_pulso,
-          LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
-          SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
-        FROM precios_unificados
-        WHERE precio_mxn IS NOT NULL
-          AND precio_mxn > 0
+      SELECT
+      fecha_contable,
+      semana,
+      mes,
+      anio,
+      trimestre,
+      nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
+      referencia_nombre,
+      pais,
+      producto_tipo,
+      precio_usd,
+      precio_mxn,
+      Tipo_Cambio,
+      precio_caida_pedidos AS precio_caida_mxn,
+      precio_pulso,
+      LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
+      SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
+      FROM precios_unificados
+      WHERE precio_mxn IS NOT NULL
+      AND precio_mxn > 0
       )
 
       SELECT
-        referencia_nombre,
-        pais,
-        producto_tipo,
-        semana,
-        mes,
-        anio,
-        trimestre,
-        nombre_periodo_mostrar,
-        nom_grupo_estadistico1,
-        nom_grupo_estadistico2,
-        nom_grupo_estadistico3,
-        nom_grupo_estadistico4,
-        nom_subdireccion,
-        nom_gerencia,
-        nom_zona,
-        nom_cliente,
-        zona,
-        nom_estado,
-        nom_canal,
-        fecha_contable,
-        precio_usd,
-        precio_mxn AS precio_nov,
-        precio_caida_mxn,
-        ROUND(SAFE_DIVIDE((precio_mxn - precio_semana_anterior), precio_semana_anterior) * 100, 2) AS caida_porcentual,
-        ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_mxn), precio_mxn) * 100, 2) AS senal_porcentual,
-        indice_precio,
-        Tipo_Cambio,
-        precio_pulso
+      referencia_nombre,
+      pais,
+      producto_tipo,
+      semana,
+      mes,
+      anio,
+      trimestre,
+      nombre_periodo_mostrar,
+      nom_grupo_estadistico1,
+      nom_grupo_estadistico2,
+      nom_grupo_estadistico3,
+      nom_grupo_estadistico4,
+      nom_subdireccion,
+      nom_gerencia,
+      nom_zona,
+      nom_cliente,
+      zona,
+      nom_estado,
+      nom_canal,
+      fecha_contable,
+      precio_usd,
+      precio_mxn AS precio_nov,
+      precio_caida_mxn,
+      ROUND(SAFE_DIVIDE((precio_mxn - precio_semana_anterior), precio_semana_anterior) * 100, 2) AS caida_porcentual,
+      ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_mxn), precio_mxn) * 100, 2) AS senal_porcentual,
+      indice_precio,
+      Tipo_Cambio,
+      precio_pulso
       FROM precios_con_calculos ;;
   }
 
