@@ -83,7 +83,7 @@
     type: looker_column
     fields: [cuadrante_izquierdo_superior.semana, cuadrante_izquierdo_superior.precio_caida_mxn,
       cuadrante_izquierdo_superior.precio_nov, cuadrante_izquierdo_superior.precio_pulso_min]
-    sorts: [cuadrante_izquierdo_superior.precio_caida_mxn desc 0]
+    sorts: [cuadrante_izquierdo_superior.semana asc 0]
     limit: 500
     column_limit: 50
     x_axis_gridlines: false
@@ -136,9 +136,9 @@
     model: ven_mart_comercial_model_test
     explore: cuadrante_superior_derecha
     type: looker_scatter
-    fields: [cuadrante_superior_derecha.spread, cuadrante_superior_derecha.toneladas_facturadas,
-      cuadrante_superior_derecha.semana_label, cuadrante_superior_derecha.indice_precio]
-    sorts: [cuadrante_superior_derecha.spread desc 0]
+    fields: [cuadrante_superior_derecha.semana_label, cuadrante_superior_derecha.indice_precio,
+      cuadrante_superior_derecha.spread, cuadrante_superior_derecha.toneladas_facturadas]
+    sorts: [cuadrante_superior_derecha.semana asc 0]
     limit: 500
     column_limit: 50
     x_axis_gridlines: false
@@ -153,72 +153,54 @@
     y_axis_scale_mode: linear
     x_axis_reversed: false
     y_axis_reversed: false
-    plot_size_by_field: false
+    plot_size_by_field: true
     trellis: ''
     stacking: ''
     limit_displayed_rows: false
     legend_position: center
     point_style: circle
-    show_value_labels: false
+    show_value_labels: true
     label_density: 25
     x_axis_scale: auto
     y_axis_combined: true
     show_null_points: true
-    y_axes: [{label: '', orientation: left, series: [{axisId: cuadrante_superior_derecha.spread,
-            id: cuadrante_superior_derecha.spread, name: Spread}, {axisId: cuadrante_superior_derecha.toneladas_facturadas,
-            id: cuadrante_superior_derecha.toneladas_facturadas, name: Toneladas Facturadas}],
+    y_axes: [{label: 'Spread', orientation: left, series: [{axisId: cuadrante_superior_derecha.spread,
+            id: cuadrante_superior_derecha.spread, name: Spread}],
         showLabels: true, showValues: true, unpinAxis: false, tickDensity: default,
         tickDensityCustom: 5, type: linear}]
     x_axis_zoom: true
     y_axis_zoom: true
-    hidden_series: [cuadrante_superior_derecha.spread]
+    hidden_series: []
     series_colors:
       cuadrante_superior_derecha.toneladas_facturadas: "#FF6B00"
-      cuadrante_superior_derecha.spread: "#237a16"
     cluster_points: false
-    quadrants_enabled: false
+    quadrants_enabled: true
     quadrant_properties:
       '0':
         color: ''
-        label: Quadrant 1
+        label: ''
       '1':
         color: ''
-        label: Quadrant 2
+        label: ''
       '2':
         color: ''
-        label: Quadrant 3
+        label: ''
       '3':
         color: ''
-        label: Quadrant 4
-    custom_quadrant_point_x: 5
-    custom_quadrant_point_y: 5
-    custom_x_column: ''
-    custom_y_column: ''
-    custom_value_label_column: ''
+        label: ''
+    custom_quadrant_point_x: 1.0
+    custom_quadrant_point_y: 6300
+    custom_x_column: cuadrante_superior_derecha.indice_precio
+    custom_y_column: cuadrante_superior_derecha.spread
+    custom_value_label_column: cuadrante_superior_derecha.semana_label
     ordering: none
     show_null_labels: false
     show_totals_labels: false
     show_silhouette: false
     totals_color: "#808080"
     defaults_version: 1
-    hidden_fields: [cuadrante_superior_derecha.indice_precio, cuadrante_superior_derecha.spread]
+    hidden_fields: []
     hidden_pivots: {}
-    show_row_numbers: true
-    transpose: false
-    truncate_text: true
-    hide_totals: false
-    hide_row_totals: false
-    size_to_fit: true
-    table_theme: white
-    enable_conditional_formatting: false
-    header_text_alignment: left
-    header_font_size: 12
-    rows_font_size: 12
-    conditional_formatting_include_totals: false
-    conditional_formatting_include_nulls: false
-    interpolation: linear
-    value_labels: legend
-    label_type: labPer
     listen:
       Nom Grupo Estadistico2: cuadrante_superior_derecha.nom_grupo_estadistico2
       Nom Grupo Estadistico3: cuadrante_superior_derecha.nom_grupo_estadistico3
@@ -245,7 +227,7 @@
       cuadrante_izquierdo_inferior.platts_promedio, cuadrante_izquierdo_inferior.senal_precio_promedio,
       cuadrante_izquierdo_inferior.precio_importacion_promedio, cuadrante_izquierdo_inferior.precio_opvo_calculado,
       cuadrante_izquierdo_inferior.toneladas_pvo_total, cuadrante_izquierdo_inferior.toneladas_facturadas_total]
-    sorts: [cuadrante_izquierdo_inferior.precio_caida_promedio desc]
+    sorts: [cuadrante_izquierdo_inferior.semana asc 0]
     limit: 500
     column_limit: 50
     x_axis_gridlines: false
@@ -325,119 +307,28 @@
     width: 15
     height: 6
     tab_name: ''
-  - title: ''
+  - title: Medidor de Precio
     name: '4'
     model: ven_mart_comercial_model_test
     explore: cuadrante_izquierdo_inferior
-    type: looker_donut_multiples
-    fields: [cuadrante_izquierdo_inferior.semana, cuadrante_izquierdo_inferior.senal_precio_promedio,
+    type: looker_gauge
+    fields: [cuadrante_izquierdo_inferior.semana, cuadrante_izquierdo_inferior.precio_caida_promedio,
       cuadrante_izquierdo_inferior.precio_minimo_historico, cuadrante_izquierdo_inferior.precio_maximo_historico]
-    sorts: [cuadrante_izquierdo_inferior.senal_precio_promedio desc 0]
-    limit: 500
+    sorts: [cuadrante_izquierdo_inferior.semana desc 0]
+    limit: 1
     column_limit: 50
-    show_value_labels: false
-    font_size: 12
-    series_colors:
-      cuadrante_izquierdo_inferior.precio_maximo_historico: "#F9AB00"
-    series_labels: {}
-    x_axis_gridlines: false
-    y_axis_gridlines: true
-    show_view_names: false
-    show_y_axis_labels: true
-    show_y_axis_ticks: true
-    y_axis_tick_density: default
-    y_axis_tick_density_custom: 5
-    show_x_axis_label: true
-    show_x_axis_ticks: true
-    y_axis_scale_mode: linear
-    x_axis_reversed: false
-    y_axis_reversed: false
-    plot_size_by_field: false
-    trellis: ''
-    stacking: ''
-    limit_displayed_rows: false
-    legend_position: center
-    point_style: none
-    label_density: 25
-    x_axis_scale: auto
-    y_axis_combined: true
-    ordering: none
-    show_null_labels: false
-    show_totals_labels: false
-    show_silhouette: false
-    totals_color: "#808080"
-    defaults_version: 1
-    value_labels: legend
-    label_type: labPer
-    hidden_fields: []
-    hidden_points_if_no: []
-    bin_type: bins
-    bin_style: simple_hist
-    winsorization: false
-    color_col: "#1A73E8"
-    color_on_hover: "#338bff"
-    x_axis_override: ''
-    x_grids: true
-    x_axis_title_font_size: 16
-    x_axis_label_font_size: 12
-    x_axis_label_angle: 0
-    x_label_separation: 100
-    y_axis_override: ''
-    y_grids: true
-    y_axis_title_font_size: 16
-    y_axis_label_font_size: 12
-    y_axis_label_angle: 0
-    y_label_separation: 100
-    x_axis_value_format: ''
-    leftAxisLabelVisible: false
-    leftAxisLabel: ''
-    rightAxisLabelVisible: false
-    rightAxisLabel: ''
-    smoothedBars: false
-    orientation: automatic
-    labelPosition: left
-    percentType: total
-    percentPosition: inline
-    valuePosition: right
-    labelColorEnabled: false
-    labelColor: "#FFF"
-    hidden_pivots: {}
-    color_application: undefined
-    up_color: false
-    down_color: false
-    total_color: false
-    show_row_numbers: true
-    transpose: false
-    truncate_text: true
-    hide_totals: false
-    hide_row_totals: false
-    size_to_fit: true
-    table_theme: white
-    enable_conditional_formatting: false
-    header_text_alignment: left
-    header_font_size: 12
-    rows_font_size: 12
-    conditional_formatting_include_totals: false
-    conditional_formatting_include_nulls: false
-    show_null_points: true
-    interpolation: linear
     custom_color_enabled: true
     show_single_value_title: true
     show_comparison: false
     comparison_type: value
     comparison_reverse_colors: false
     show_comparison_label: true
-    show_variance: true
-    variance_format: percentage
-    comparison_label: Vs periodo anterior
-    color_scheme: primary
-    icon: ''
-    animate: true
-    invert_colors: false
-    compact_numbers: false
-    map: usa
-    map_projection: ''
-    quantize_colors: false
+    enable_conditional_formatting: false
+    conditional_formatting_include_totals: false
+    conditional_formatting_include_nulls: false
+    defaults_version: 1
+    hidden_fields: [cuadrante_izquierdo_inferior.precio_minimo_historico, cuadrante_izquierdo_inferior.precio_maximo_historico]
+    hidden_pivots: {}
     listen:
       Nom Grupo Estadistico2: cuadrante_izquierdo_inferior.nom_grupo_estadistico2
       Nom Grupo Estadistico3: cuadrante_izquierdo_inferior.nom_grupo_estadistico3
@@ -654,7 +545,7 @@
     fields: [cuadrante_derecho_inferior.nombre_periodo_mostrar, cuadrante_derecho_inferior.precio_varilla,
       cuadrante_derecho_inferior.costo_mezcla, cuadrante_derecho_inferior.spread,
       cuadrante_derecho_inferior.costo_mezcla_variacion_pct, cuadrante_derecho_inferior.spread_variacion_pct]
-    sorts: [cuadrante_derecho_inferior.precio_varilla desc 0]
+    sorts: [cuadrante_derecho_inferior.mes asc 0]
     limit: 500
     column_limit: 50
     show_view_names: false

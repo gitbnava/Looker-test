@@ -303,14 +303,14 @@ view: cuadrante_derecho_inferior {
     type: average
     sql: ${TABLE}.costo_mezcla_variacion_pct ;;
     value_format_name: decimal_1
-    description: "Variación % costo mezcla vs mes anterior"
+    description: "Variación % costo mezcla período a período (mes actual vs mes anterior). Nota: Datalake ID 152 define una métrica distinta (desviación vs presupuesto); esta es variación de tendencia."
   }
 
   measure: spread_variacion_pct {
     type: average
     sql: ${TABLE}.spread_variacion_pct ;;
     value_format_name: decimal_1
-    description: "Variación % spread vs mes anterior"
+    description: "Variación % spread período a período (mes actual vs mes anterior). Nota: Datalake ID 152 define una métrica distinta (desviación vs presupuesto); esta es variación de tendencia."
   }
 
   # ============================================
