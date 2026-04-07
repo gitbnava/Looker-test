@@ -96,8 +96,9 @@ view: cuadrante_izquierdo_inferior {
       r.precio_usd_amm_europa,
       r.precio_usd_amm_asia,
       -- precio_caida_pedidos: precio por tonelada ($/ton) = imp_precio_entrega_mn / toneladas_pedidas
+      -- Mínimo 1 tonelada para evitar outliers por denominadores casi-cero (ej: registros de prueba)
       CASE
-      WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) > 0
+      WHEN SAFE_CAST(v.toneladas_pedidas AS FLOAT64) >= 1
       AND SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64) > 0
       THEN SAFE_DIVIDE(
       SAFE_CAST(v.imp_precio_entrega_mn AS FLOAT64),
@@ -298,7 +299,9 @@ view: cuadrante_izquierdo_inferior {
       -- Variación porcentual
       variacion_porcentual_toneladas,
       -- Formato de semana para etiquetas
-      CONCAT('S', SUBSTR(CAST(semana AS STRING), -2)) AS semana_label
+      CONCAT('S', SUBSTR(CAST(semana AS STRING), -2)) AS semana_label,
+      -- Flag para filtrar KPI tiles a la semana más reciente disponible
+      CASE WHEN semana = MAX(semana) OVER () THEN TRUE ELSE FALSE END AS is_ultima_semana
       FROM datos_con_variaciones
       WHERE precio_caida_promedio IS NOT NULL
       ORDER BY semana ASC ;;
@@ -318,6 +321,12 @@ view: cuadrante_izquierdo_inferior {
     type: string
     sql: ${TABLE}.semana_label ;;
     description: "Etiqueta de semana formateada (ej: S45)"
+  }
+
+  dimension: is_ultima_semana {
+    type: yesno
+    sql: ${TABLE}.is_ultima_semana ;;
+    description: "TRUE si es la semana más reciente disponible. Usar como filtro en tiles KPI para evitar acumulación de semanas."
   }
 
   dimension: mes {
@@ -362,56 +371,42 @@ view: cuadrante_izquierdo_inferior {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico1
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico2
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico3
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico4
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_subdireccion
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_gerencia
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_zona
   }
 
   dimension: nom_cliente {
@@ -419,8 +414,6 @@ view: cuadrante_izquierdo_inferior {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_cliente
   }
 
   dimension: zona {
@@ -428,8 +421,6 @@ view: cuadrante_izquierdo_inferior {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.zona
   }
 
   dimension: nom_estado {
@@ -437,8 +428,6 @@ view: cuadrante_izquierdo_inferior {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_estado
   }
 
   dimension: nom_canal {
@@ -446,8 +435,6 @@ view: cuadrante_izquierdo_inferior {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nom_canal
   }
 
   # ============================================
