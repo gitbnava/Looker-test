@@ -3,39 +3,12 @@ view: cuadrante_izquierdo_superior {
     sql:
       -- Optimizado: filtro 90 días, una sola pasada UNNEST en lugar de 9 UNION ALL
       WITH
-      semana_actual_calculada AS (
-        SELECT
-          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
-      ),
-      -- Solo últimas 5 semanas; restringir a 90 días para reducir bytes escaneados (partition pruning)
+      -- Últimas 6 semanas calculadas determinísticamente desde la semana actual
       semanas_disponibles AS (
-        SELECT DISTINCT anio_semana AS semana
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_actual_calculada
-        WHERE fecha IS NOT NULL
-          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-          AND fecha <= CURRENT_DATE()
-          AND Tipo_Cambio IS NOT NULL
-          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND anio_semana IS NOT NULL
-          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND (
-            (SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) IS NOT NULL AND SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0)
-            OR (SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) IS NOT NULL AND SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0)
-            OR (SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Angulo_Comercial_China AS FLOAT64) IS NOT NULL AND SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0)
-            OR (SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) IS NOT NULL AND SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0)
-            OR (SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) IS NOT NULL AND SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0)
-            OR (SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) IS NOT NULL AND SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0)
-            OR (SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) IS NOT NULL AND SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0)
-          )
-        ORDER BY anio_semana DESC
-        LIMIT 6
-      ),
-      semana_limite AS (
-        SELECT MIN(semana) AS semana_limite_str FROM semanas_disponibles
+        SELECT
+          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING), 2, '0') AS semana
+        FROM UNNEST(GENERATE_ARRAY(0, 5)) AS i
       ),
       -- Precios de importación agregados por semana (de cualquier fila con esos campos)
       -- Desacoplado de GE para que funcione con cualquier filtro de producto
@@ -268,6 +241,9 @@ view: cuadrante_izquierdo_superior {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar (ej: Nov-2025)"
+    order_by_field: mes
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nombre_periodo_mostrar
   }
 
   dimension: fecha_contable {
@@ -425,6 +401,7 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
