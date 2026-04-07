@@ -347,14 +347,14 @@ view: cuadrante_superior_derecha {
   }
 
   measure: indice_precio {
-    type: number
+    type: max
     sql: ${TABLE}.indice_precio ;;
     value_format_name: decimal_4
     description: "Índice de precio (precio_caida / pulso)"
   }
 
   measure: spread {
-    type: number
+    type: max
     sql: ${TABLE}.spread ;;
     value_format_name: usd
     description: "Spread (Precio Exworks - Costo MP)"
@@ -387,6 +387,7 @@ view: cuadrante_superior_derecha {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
