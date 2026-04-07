@@ -8,38 +8,12 @@ view: cuadrante_izquierdo_inferior {
       -- =====================================================
 
       WITH
-      -- Calcular la semana actual para filtrar semanas futuras
-      semana_actual_calculada AS (
-        SELECT
-          CAST(EXTRACT(YEAR FROM CURRENT_DATE()) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM CURRENT_DATE()) AS STRING), 2, '0') AS semana_actual_str
-      ),
-      -- Encontrar las últimas 5 semanas disponibles con datos válidos
+      -- Últimas 6 semanas calculadas determinísticamente desde la semana actual
       semanas_disponibles AS (
-        SELECT DISTINCT anio_semana AS semana
-        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
-        CROSS JOIN semana_actual_calculada
-        WHERE fecha IS NOT NULL
-          AND anio_semana IS NOT NULL
-          AND anio_semana <= (SELECT semana_actual_str FROM semana_actual_calculada)
-          AND fecha <= CURRENT_DATE()
-          AND Tipo_Cambio IS NOT NULL
-          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND (
-            -- precio_caida_pedidos es calculado; considerar semanas con insumos para calcularlo
-            (
-              SAFE_CAST(toneladas_pedidas AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(toneladas_pedidas AS FLOAT64) != 0
-              AND SAFE_CAST(toneladas_caida_de_pedidos AS FLOAT64) IS NOT NULL
-              AND SAFE_CAST(imp_precio_entrega_mn AS FLOAT64) IS NOT NULL
-            )
-            OR Platts_total IS NOT NULL
-            OR precio_senial IS NOT NULL
-            OR toneladas_pvo IS NOT NULL
-            OR toneladas_facturadas IS NOT NULL
-          )
-        ORDER BY anio_semana DESC
-        LIMIT 6
+        SELECT
+          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING) ||
+          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING), 2, '0') AS semana
+        FROM UNNEST(GENERATE_ARRAY(0, 5)) AS i
       ),
 
       -- Precios de importación y tipo de cambio agregados por semana (de cualquier fila con esos campos)
@@ -351,6 +325,9 @@ view: cuadrante_izquierdo_inferior {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar"
+    order_by_field: mes
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nombre_periodo_mostrar
   }
 
   dimension: fecha_contable_min {
@@ -553,6 +530,7 @@ view: cuadrante_izquierdo_inferior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
