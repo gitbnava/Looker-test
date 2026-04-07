@@ -42,7 +42,7 @@ view: cuadrante_izquierdo_superior {
       ref_por_semana AS (
         SELECT
           anio_semana AS semana,
-          AVG(SAFE_CAST(Tipo_Cambio AS FLOAT64)) AS Tipo_Cambio,
+          AVG(CASE WHEN SAFE_CAST(Tipo_Cambio AS FLOAT64) > 5 THEN SAFE_CAST(Tipo_Cambio AS FLOAT64) END) AS Tipo_Cambio,
           AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) END) AS precio_usd_turkey_rebar,
           AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) END) AS precio_usd_spain_rebar,
           AVG(CASE WHEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0 THEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) END) AS precio_usd_malasia_varilla,
@@ -152,68 +152,68 @@ view: cuadrante_izquierdo_superior {
       ),
 
       precios_con_calculos AS (
-      SELECT
-      fecha_contable,
-      semana,
-      mes,
-      anio,
-      trimestre,
-      nombre_periodo_mostrar,
-      nom_grupo_estadistico1,
-      nom_grupo_estadistico2,
-      nom_grupo_estadistico3,
-      nom_grupo_estadistico4,
-      nom_subdireccion,
-      nom_gerencia,
-      nom_zona,
-      nom_cliente,
-      zona,
-      nom_estado,
-      nom_canal,
-      referencia_nombre,
-      pais,
-      producto_tipo,
-      precio_usd,
-      precio_mxn,
-      Tipo_Cambio,
-      precio_caida_pedidos AS precio_caida_mxn,
-      precio_pulso,
-      LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana DESC, fecha_contable DESC) AS precio_semana_anterior,
-      SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
-      FROM precios_unificados
-      WHERE precio_mxn IS NOT NULL
-      AND precio_mxn > 0
+        SELECT
+          fecha_contable,
+          semana,
+          mes,
+          anio,
+          trimestre,
+          nombre_periodo_mostrar,
+          nom_grupo_estadistico1,
+          nom_grupo_estadistico2,
+          nom_grupo_estadistico3,
+          nom_grupo_estadistico4,
+          nom_subdireccion,
+          nom_gerencia,
+          nom_zona,
+          nom_cliente,
+          zona,
+          nom_estado,
+          nom_canal,
+          referencia_nombre,
+          pais,
+          producto_tipo,
+          precio_usd,
+          precio_mxn,
+          Tipo_Cambio,
+          precio_caida_pedidos AS precio_caida_mxn,
+          precio_pulso,
+          LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana ASC, fecha_contable ASC) AS precio_semana_anterior,
+          SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
+        FROM precios_unificados
+        WHERE precio_mxn IS NOT NULL
+          AND precio_mxn > 0
       )
 
       SELECT
-      referencia_nombre,
-      pais,
-      producto_tipo,
-      semana,
-      mes,
-      anio,
-      trimestre,
-      nombre_periodo_mostrar,
-      nom_grupo_estadistico1,
-      nom_grupo_estadistico2,
-      nom_grupo_estadistico3,
-      nom_grupo_estadistico4,
-      nom_subdireccion,
-      nom_gerencia,
-      nom_zona,
-      nom_cliente,
-      zona,
-      nom_estado,
-      nom_canal,
-      fecha_contable,
-      precio_usd,
-      precio_mxn AS precio_nov,
-      precio_caida_mxn,
-      ROUND(SAFE_DIVIDE((precio_mxn - precio_semana_anterior), precio_semana_anterior) * 100, 2) AS caida_porcentual,
-      ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_mxn), precio_mxn) * 100, 2) AS senal_porcentual,
-      indice_precio,
-      Tipo_Cambio,
-      precio_pulso
+        referencia_nombre,
+        pais,
+        producto_tipo,
+        semana,
+        mes,
+        anio,
+        trimestre,
+        nombre_periodo_mostrar,
+        nom_grupo_estadistico1,
+        nom_grupo_estadistico2,
+        nom_grupo_estadistico3,
+        nom_grupo_estadistico4,
+        nom_subdireccion,
+        nom_gerencia,
+        nom_zona,
+        nom_cliente,
+        zona,
+        nom_estado,
+        nom_canal,
+        fecha_contable,
+        precio_usd,
+        precio_mxn AS precio_nov,
+        precio_caida_mxn,
+        ROUND(SAFE_DIVIDE((precio_mxn - precio_semana_anterior), precio_semana_anterior) * 100, 2) AS caida_porcentual,
+        ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_mxn), precio_mxn) * 100, 2) AS senal_porcentual,
+        indice_precio,
+        Tipo_Cambio,
+        precio_pulso
       FROM precios_con_calculos ;;
   }
 
@@ -280,49 +280,56 @@ view: cuadrante_izquierdo_superior {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico1
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico2
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico3
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico4
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_subdireccion
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_gerencia
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_zona
   }
 
   dimension: nom_cliente {
@@ -330,7 +337,8 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_cliente
   }
 
   dimension: zona {
@@ -338,7 +346,8 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.zona
   }
 
   dimension: nom_estado {
@@ -346,7 +355,8 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_estado
   }
 
   dimension: nom_canal {
@@ -354,7 +364,8 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_canal
   }
 
   # ============================================
@@ -367,56 +378,56 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: precio_usd {
-    type: average
+    type: number
     sql: ${TABLE}.precio_usd ;;
     value_format_name: usd
     description: "Precio en USD"
   }
 
   measure: precio_nov {
-    type: average
+    type: number
     sql: ${TABLE}.precio_nov ;;
     value_format_name: usd
     description: "Precio del período en MXN"
   }
 
   measure: precio_caida_mxn {
-    type: average
+    type: number
     sql: ${TABLE}.precio_caida_mxn ;;
     value_format_name: usd
     description: "Precio caída en MXN"
   }
 
   measure: caida_porcentual {
-    type: average
+    type: number
     sql: ${TABLE}.caida_porcentual ;;
     value_format_name: decimal_2
     description: "Variación porcentual vs período anterior (%)"
   }
 
   measure: senal_porcentual {
-    type: average
+    type: number
     sql: ${TABLE}.senal_porcentual ;;
     value_format_name: decimal_2
     description: "Señal porcentual calculada (%)"
   }
 
   measure: indice_precio {
-    type: average
+    type: number
     sql: ${TABLE}.indice_precio ;;
     value_format_name: decimal_4
     description: "Índice de precio (precio_caida / pulso)"
   }
 
   measure: tipo_cambio {
-    type: average
+    type: number
     sql: ${TABLE}.Tipo_Cambio ;;
     value_format_name: decimal_2
     description: "Tipo de cambio usado para conversión"
   }
 
   measure: precio_pulso {
-    type: average
+    type: number
     sql: ${TABLE}.precio_pulso ;;
     value_format_name: usd
     description: "Precio pulso en MXN"
@@ -435,7 +446,6 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
-
   }
 
   set: detail {

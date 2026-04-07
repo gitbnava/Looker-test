@@ -192,49 +192,56 @@ view: cuadrante_derecho_inferior {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico1 ;;
     description: "Nom Grupo Estadistico 1"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico1
   }
 
   dimension: nom_grupo_estadistico2 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico2 ;;
     description: "Nom Grupo Estadistico 2"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico2
   }
 
   dimension: nom_grupo_estadistico3 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico3 ;;
     description: "Nom Grupo Estadistico 3"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico3
   }
 
   dimension: nom_grupo_estadistico4 {
     type: string
     sql: ${TABLE}.nom_grupo_estadistico4 ;;
     description: "Nom Grupo Estadistico 4"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_grupo_estadistico4
   }
 
   dimension: nom_subdireccion {
     type: string
     sql: ${TABLE}.nom_subdireccion ;;
     description: "Nom Subdireccion"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_subdireccion
   }
 
   dimension: nom_gerencia {
     type: string
     sql: ${TABLE}.nom_gerencia ;;
     description: "Nom Gerencia"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_gerencia
   }
 
   dimension: nom_zona {
     type: string
     sql: ${TABLE}.nom_zona ;;
     description: "Nom Zona"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_zona
   }
 
   dimension: nom_cliente {
@@ -242,7 +249,8 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_cliente ;;
     description: "Nombre cliente"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_cliente
   }
 
   dimension: zona {
@@ -250,7 +258,8 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.zona ;;
     description: "Zona"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.zona
   }
 
   dimension: nom_estado {
@@ -258,7 +267,8 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_estado ;;
     description: "Nombre estado"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_estado
   }
 
   dimension: nom_canal {
@@ -266,7 +276,8 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nom_canal ;;
     description: "Nombre canal"
     group_item_label: "Filtros"
-    suggestable: no
+    suggest_explore: ven_mart_comercial
+    suggest_dimension: ven_mart_comercial.nom_canal
   }
 
   # ============================================
@@ -279,38 +290,38 @@ view: cuadrante_derecho_inferior {
   }
 
   measure: precio_varilla {
-    type: average
+    type: number
     sql: ${TABLE}.precio_varilla ;;
     value_format_name: usd
     description: "Precio Varilla (precio destino: facturación entregada por tonelada)"
   }
 
   measure: costo_mezcla {
-    type: average
+    type: number
     sql: ${TABLE}.costo_mezcla ;;
     value_format_name: usd
     description: "Costo Mezcla (proxy con costo_mp hasta que exista costo mezcla chatarra digitalizado)"
   }
 
   measure: spread {
-    type: average
+    type: number
     sql: ${TABLE}.spread ;;
     value_format_name: usd
     description: "Spread = Precio Exworks - Costo mezcla chatarra"
   }
 
   measure: costo_mezcla_variacion_pct {
-    type: average
+    type: number
     sql: ${TABLE}.costo_mezcla_variacion_pct ;;
     value_format_name: decimal_1
-    description: "Variación % costo mezcla período a período (mes actual vs mes anterior). Nota: Datalake ID 152 define una métrica distinta (desviación vs presupuesto); esta es variación de tendencia."
+    description: "Variación % costo mezcla vs mes anterior"
   }
 
   measure: spread_variacion_pct {
-    type: average
+    type: number
     sql: ${TABLE}.spread_variacion_pct ;;
     value_format_name: decimal_1
-    description: "Variación % spread período a período (mes actual vs mes anterior). Nota: Datalake ID 152 define una métrica distinta (desviación vs presupuesto); esta es variación de tendencia."
+    description: "Variación % spread vs mes anterior"
   }
 
   # ============================================
