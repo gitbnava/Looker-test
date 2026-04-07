@@ -10,6 +10,13 @@ explore: ven_mart_comercial {
 
 }
 
+# Explore auxiliar oculto para sugerencias de nombre_periodo_mostrar (2022-2026)
+explore: ven_mart_comercial_periodos {
+  hidden: yes
+  from: ven_mart_comercial
+  sql_always_where: SAFE_CAST(anio AS INT64) >= 2022 AND SAFE_CAST(anio AS INT64) <= 2026 ;;
+}
+
 explore: precios_importacion {
   label: "Precios de importacion"
 }

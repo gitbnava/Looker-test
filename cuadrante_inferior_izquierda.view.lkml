@@ -339,6 +339,8 @@ view: cuadrante_izquierdo_inferior {
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar"
     order_by_field: mes
+    suggest_explore: ven_mart_comercial_periodos
+    suggest_dimension: ven_mart_comercial_periodos.nombre_periodo_mostrar
   }
 
   dimension: fecha_contable_min {

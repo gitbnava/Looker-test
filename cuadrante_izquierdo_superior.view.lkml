@@ -254,6 +254,8 @@ view: cuadrante_izquierdo_superior {
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar (ej: Nov-2025)"
     order_by_field: mes
+    suggest_explore: ven_mart_comercial_periodos
+    suggest_dimension: ven_mart_comercial_periodos.nombre_periodo_mostrar
   }
 
   dimension: fecha_contable {
@@ -411,7 +413,6 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
-
   }
 
   set: detail {

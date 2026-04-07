@@ -187,6 +187,8 @@ view: cuadrante_derecho_inferior {
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar (ej: Jul-2025)"
     order_by_field: mes
+    suggest_explore: ven_mart_comercial_periodos
+    suggest_dimension: ven_mart_comercial_periodos.nombre_periodo_mostrar
   }
 
   dimension: nom_grupo_estadistico1 {
