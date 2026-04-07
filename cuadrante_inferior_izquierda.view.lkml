@@ -461,28 +461,28 @@ view: cuadrante_izquierdo_inferior {
 
   # KPIs y Medidor
   measure: precio_caida_promedio {
-    type: number
+    type: max
     sql: ${TABLE}.precio_caida_promedio ;;
     value_format_name: usd
     description: "Precio caída promedio (para medidor y KPIs)"
   }
 
   measure: limite_superior {
-    type: number
+    type: max
     sql: ${TABLE}.limite_superior ;;
     value_format_name: usd
     description: "Límite superior (Promedio + STDDEV)"
   }
 
   measure: limite_inferior {
-    type: number
+    type: max
     sql: ${TABLE}.limite_inferior ;;
     value_format_name: usd
     description: "Límite inferior (Promedio - STDDEV)"
   }
 
   measure: precio_semana_anterior {
-    type: number
+    type: max
     sql: ${TABLE}.precio_semana_anterior ;;
     value_format_name: usd
     description: "Precio caída semana anterior"
@@ -504,28 +504,28 @@ view: cuadrante_izquierdo_inferior {
 
   # Líneas de Precio
   measure: platts_promedio {
-    type: number
+    type: max
     sql: ${TABLE}.platts_promedio ;;
     value_format_name: usd
     description: "Platts promedio por semana"
   }
 
   measure: senal_precio_promedio {
-    type: number
+    type: max
     sql: ${TABLE}.senal_precio_promedio ;;
     value_format_name: usd
     description: "Señal de precio promedio por semana"
   }
 
   measure: precio_importacion_promedio {
-    type: number
+    type: max
     sql: ${TABLE}.precio_importacion_promedio ;;
     value_format_name: usd
     description: "Precio importación promedio por semana"
   }
 
   measure: precio_opvo_calculado {
-    type: number
+    type: max
     sql: ${TABLE}.precio_opvo_calculado ;;
     value_format_name: usd
     description: "Precio OPVO calculado (si se necesita como precio)"
@@ -554,7 +554,7 @@ view: cuadrante_izquierdo_inferior {
   }
 
   measure: variacion_porcentual_toneladas {
-    type: number
+    type: max
     sql: ${TABLE}.variacion_porcentual_toneladas ;;
     value_format_name: decimal_2
     description: "Variación porcentual semana a semana de toneladas"
