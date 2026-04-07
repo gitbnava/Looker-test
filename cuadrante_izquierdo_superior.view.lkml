@@ -378,56 +378,56 @@ view: cuadrante_izquierdo_superior {
   }
 
   measure: precio_usd {
-    type: number
+    type: max
     sql: ${TABLE}.precio_usd ;;
     value_format_name: usd
     description: "Precio en USD"
   }
 
   measure: precio_nov {
-    type: number
+    type: max
     sql: ${TABLE}.precio_nov ;;
     value_format_name: usd
     description: "Precio del período en MXN"
   }
 
   measure: precio_caida_mxn {
-    type: number
+    type: max
     sql: ${TABLE}.precio_caida_mxn ;;
     value_format_name: usd
     description: "Precio caída en MXN"
   }
 
   measure: caida_porcentual {
-    type: number
+    type: max
     sql: ${TABLE}.caida_porcentual ;;
     value_format_name: decimal_2
     description: "Variación porcentual vs período anterior (%)"
   }
 
   measure: senal_porcentual {
-    type: number
+    type: max
     sql: ${TABLE}.senal_porcentual ;;
     value_format_name: decimal_2
     description: "Señal porcentual calculada (%)"
   }
 
   measure: indice_precio {
-    type: number
+    type: max
     sql: ${TABLE}.indice_precio ;;
     value_format_name: decimal_4
     description: "Índice de precio (precio_caida / pulso)"
   }
 
   measure: tipo_cambio {
-    type: number
+    type: max
     sql: ${TABLE}.Tipo_Cambio ;;
     value_format_name: decimal_2
     description: "Tipo de cambio usado para conversión"
   }
 
   measure: precio_pulso {
-    type: number
+    type: max
     sql: ${TABLE}.precio_pulso ;;
     value_format_name: usd
     description: "Precio pulso en MXN"
@@ -446,6 +446,7 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
