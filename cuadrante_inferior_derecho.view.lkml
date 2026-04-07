@@ -290,35 +290,35 @@ view: cuadrante_derecho_inferior {
   }
 
   measure: precio_varilla {
-    type: number
+    type: max
     sql: ${TABLE}.precio_varilla ;;
     value_format_name: usd
     description: "Precio Varilla (precio destino: facturación entregada por tonelada)"
   }
 
   measure: costo_mezcla {
-    type: number
+    type: max
     sql: ${TABLE}.costo_mezcla ;;
     value_format_name: usd
     description: "Costo Mezcla (proxy con costo_mp hasta que exista costo mezcla chatarra digitalizado)"
   }
 
   measure: spread {
-    type: number
+    type: max
     sql: ${TABLE}.spread ;;
     value_format_name: usd
     description: "Spread = Precio Exworks - Costo mezcla chatarra"
   }
 
   measure: costo_mezcla_variacion_pct {
-    type: number
+    type: max
     sql: ${TABLE}.costo_mezcla_variacion_pct ;;
     value_format_name: decimal_1
     description: "Variación % costo mezcla vs mes anterior"
   }
 
   measure: spread_variacion_pct {
-    type: number
+    type: max
     sql: ${TABLE}.spread_variacion_pct ;;
     value_format_name: decimal_1
     description: "Variación % spread vs mes anterior"
