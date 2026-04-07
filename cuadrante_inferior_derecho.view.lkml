@@ -186,6 +186,7 @@ view: cuadrante_derecho_inferior {
     type: string
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar (ej: Jul-2025)"
+    order_by_field: mes
   }
 
   dimension: nom_grupo_estadistico1 {

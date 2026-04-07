@@ -7,12 +7,16 @@ view: cuadrante_superior_derecha {
       -- =====================================================
 
       WITH
-      -- Últimas 6 semanas calculadas determinísticamente desde la semana actual
+      -- Últimas 6 semanas con datos reales; filtro 90 días para partition pruning
       semanas_disponibles AS (
-        SELECT
-          CAST(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING) ||
-          LPAD(CAST(EXTRACT(ISOWEEK FROM DATE_SUB(CURRENT_DATE(), INTERVAL i WEEK)) AS STRING), 2, '0') AS semana
-        FROM UNNEST(GENERATE_ARRAY(0, 5)) AS i
+        SELECT DISTINCT anio_semana AS semana
+        FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
+        WHERE fecha IS NOT NULL
+          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+          AND fecha <= CURRENT_DATE()
+          AND anio_semana IS NOT NULL
+        ORDER BY anio_semana DESC
+        LIMIT 6
       ),
       -- nom_cliente, zona, nom_estado, nom_canal se mantienen en todo el recorrido (datos_base → datos_con_indice → datos_agregados → SELECT final) para filtros en tiles
       datos_base AS (
@@ -173,16 +177,25 @@ view: cuadrante_superior_derecha {
   # DIMENSIONS (Campos para agrupar/filtrar)
   # ============================================
 
+  dimension: semana_sort {
+    type: number
+    sql: CAST(${TABLE}.semana AS INT64) ;;
+    hidden: yes
+    description: "Campo numérico oculto para ordenar semanas correctamente"
+  }
+
   dimension: semana {
     type: string
     sql: ${TABLE}.semana ;;
     description: "Semana en formato YYYYWW"
+    order_by_field: semana_sort
   }
 
   dimension: semana_label {
     type: string
     sql: ${TABLE}.semana_label ;;
     description: "Etiqueta de semana formateada (ej: S45)"
+    order_by_field: semana_sort
   }
 
   dimension: mes {
@@ -208,8 +221,6 @@ view: cuadrante_superior_derecha {
     sql: ${TABLE}.nombre_periodo_mostrar ;;
     description: "Período formateado para mostrar"
     order_by_field: mes
-    suggest_explore: ven_mart_comercial
-    suggest_dimension: ven_mart_comercial.nombre_periodo_mostrar
   }
 
   dimension: fecha_contable_min {
