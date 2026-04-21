@@ -4,7 +4,7 @@ view: cuadrante_izquierdo_superior {
       -- Optimizado: filtro 90 días, una sola pasada UNNEST en lugar de 9 UNION ALL
       -- Alineado a definiciones D5, D9, D11 y KPIs #1, #2-23
       WITH
-      -- Últimas 6 semanas con datos reales; filtro 90 días para partition pruning
+      -- Últimas 6 semanas cronológicas; filtro 90 días para partition pruning
       -- Bloque transaccional del mart (control IN (1, 6)):
       --   control=1: transacciones facturación/entrega principales (~145k filas/90d, con TC, tons_caida, imp_entrega)
       --   control=6: flujos complementarios con imp_entrega capturado (~41k filas/90d, con TC e imp_entrega)
@@ -12,6 +12,12 @@ view: cuadrante_izquierdo_superior {
       --   control=101: mayor volumen pero sin tons_caida ni imp_entrega
       --   control=103: bloque finanzas (sin campos transaccionales)
       --   control=8: plantilla maestra/datos atípicos sin TC ni imp_entrega reales
+      --
+      -- REGLA DE NEGOCIO: se toman las últimas 6 semanas CRONOLÓGICAS, independientemente
+      -- de si tienen datos de índices internacionales. Los índices internacionales pueden
+      -- capturarse con lag (2-4 semanas), por lo que algunas semanas recientes tendrán
+      -- precios = 0 en lugar de valor. Esto es intencional: se prefiere omitir "falta de dato"
+      -- como 0 antes que sesgar la selección de semanas por disponibilidad de índices.
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
@@ -28,37 +34,44 @@ view: cuadrante_izquierdo_superior {
       -- Fuente Tipo_Cambio: mart comercial (diario).
       -- D11 documenta adicionalmente una fuente semanal en Google Sheets para la sección
       -- de precios internacionales. Aquí se usa el TC del mart por disponibilidad en BigQuery
-      -- y por consistencia con las transacciones. Si se requiere TC semanal oficial para
-      -- importaciones, debe integrarse la fuente externa como CTE adicional.
+      -- y por consistencia con las transacciones.
+      --
+      -- MANEJO DE NULOS (regla de negocio):
+      -- - Los índices internacionales pueden estar ausentes en las últimas 2-4 semanas
+      --   por lag de captura. En lugar de omitir esas semanas, se usa COALESCE(..., 0)
+      --   para que el AVG devuelva 0 cuando no hay dato. Esto permite preservar las 6
+      --   semanas cronológicas en el resultado final.
+      -- - Tipo_Cambio conserva NULL si no existe, para que la conversión a MXN no use TC=0
+      --   (se hace COALESCE en el cálculo de precio_mxn en el CTE precios_unificados).
       ref_por_semana AS (
         SELECT
           anio_semana AS semana,
           AVG(CASE WHEN SAFE_CAST(Tipo_Cambio AS FLOAT64) > 5 THEN SAFE_CAST(Tipo_Cambio AS FLOAT64) END) AS Tipo_Cambio,
-          AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Turkey AS FLOAT64) END) AS precio_usd_turkey_rebar,
-          AVG(CASE WHEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) > 0 THEN SAFE_CAST(Rebar_FOB_Spain AS FLOAT64) END) AS precio_usd_spain_rebar,
-          AVG(CASE WHEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) > 0 THEN SAFE_CAST(Precio_Varilla_Malasia AS FLOAT64) END) AS precio_usd_malasia_varilla,
-          AVG(CASE WHEN SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Angulo_Comercial_Turkey AS FLOAT64) END) AS precio_usd_turkey_angulo,
-          AVG(CASE WHEN SAFE_CAST(Angulo_Comercial_China AS FLOAT64) > 0 THEN SAFE_CAST(Angulo_Comercial_China AS FLOAT64) END) AS precio_usd_china_angulo,
-          AVG(CASE WHEN SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) > 0 THEN SAFE_CAST(Vigas_IPN_Turkey AS FLOAT64) END) AS precio_usd_turkey_vigas,
-          AVG(CASE WHEN SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) > 0 THEN SAFE_CAST(Pulso_Vigas_Int AS FLOAT64) END) AS precio_usd_pulso_vigas,
-          AVG(CASE WHEN SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) > 0 THEN SAFE_CAST(Indice_AMM_Sur_Europa AS FLOAT64) END) AS precio_usd_amm_europa,
-          AVG(CASE WHEN SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) > 0 THEN SAFE_CAST(indice_AMM_Sudeste_Asiatico AS FLOAT64) END) AS precio_usd_amm_asia,
+          COALESCE(AVG(CASE WHEN Rebar_FOB_Turkey > 0 THEN Rebar_FOB_Turkey END), 0) AS precio_usd_turkey_rebar,
+          COALESCE(AVG(CASE WHEN Rebar_FOB_Spain > 0 THEN Rebar_FOB_Spain END), 0) AS precio_usd_spain_rebar,
+          COALESCE(AVG(CASE WHEN Precio_Varilla_Malasia > 0 THEN Precio_Varilla_Malasia END), 0) AS precio_usd_malasia_varilla,
+          COALESCE(AVG(CASE WHEN Angulo_Comercial_Turkey > 0 THEN Angulo_Comercial_Turkey END), 0) AS precio_usd_turkey_angulo,
+          COALESCE(AVG(CASE WHEN Angulo_Comercial_China > 0 THEN Angulo_Comercial_China END), 0) AS precio_usd_china_angulo,
+          COALESCE(AVG(CASE WHEN Vigas_IPN_Turkey > 0 THEN Vigas_IPN_Turkey END), 0) AS precio_usd_turkey_vigas,
+          COALESCE(AVG(CASE WHEN Pulso_Vigas_Int > 0 THEN Pulso_Vigas_Int END), 0) AS precio_usd_pulso_vigas,
+          COALESCE(AVG(CASE WHEN Indice_AMM_Sur_Europa > 0 THEN Indice_AMM_Sur_Europa END), 0) AS precio_usd_amm_europa,
+          COALESCE(AVG(CASE WHEN indice_AMM_Sudeste_Asiatico > 0 THEN indice_AMM_Sudeste_Asiatico END), 0) AS precio_usd_amm_asia,
           -- Señales de precio por grupo estadístico (KPI #1 / D5)
-          AVG(CASE WHEN SAFE_CAST(Senal_Varilla AS FLOAT64) > 0 THEN SAFE_CAST(Senal_Varilla AS FLOAT64) END) AS senal_varilla,
-          AVG(CASE WHEN SAFE_CAST(Senal_Alambron AS FLOAT64) > 0 THEN SAFE_CAST(Senal_Alambron AS FLOAT64) END) AS senal_alambron,
-          AVG(CASE WHEN SAFE_CAST(Senal_Angulos_AAA AS FLOAT64) > 0 THEN SAFE_CAST(Senal_Angulos_AAA AS FLOAT64) END) AS senal_angulos_aaa,
+          COALESCE(AVG(CASE WHEN Senal_Varilla > 0 THEN Senal_Varilla END), 0) AS senal_varilla,
+          COALESCE(AVG(CASE WHEN Senal_Alambron > 0 THEN Senal_Alambron END), 0) AS senal_alambron,
+          COALESCE(AVG(CASE WHEN Senal_Angulos_AAA > 0 THEN Senal_Angulos_AAA END), 0) AS senal_angulos_aaa,
           -- Precios CIF de llegada y premiums de importación (KPIs #4-7 / D4)
-          -- precio_importacion_llegada = CIF + aranceles (tablas prem_var/prem_alam/prem_perf)
-          -- premium_importacion = premium sobre precio de llegada
-          AVG(CASE WHEN SAFE_CAST(precio_importacion_llegada1 AS FLOAT64) > 0 THEN SAFE_CAST(precio_importacion_llegada1 AS FLOAT64) END) AS precio_importacion_llegada1,
-          AVG(CASE WHEN SAFE_CAST(precio_importacion_llegada2 AS FLOAT64) > 0 THEN SAFE_CAST(precio_importacion_llegada2 AS FLOAT64) END) AS precio_importacion_llegada2,
-          AVG(CASE WHEN SAFE_CAST(premium_importacion1 AS FLOAT64) IS NOT NULL THEN SAFE_CAST(premium_importacion1 AS FLOAT64) END) AS premium_importacion1,
-          AVG(CASE WHEN SAFE_CAST(premium_importacion2 AS FLOAT64) IS NOT NULL THEN SAFE_CAST(premium_importacion2 AS FLOAT64) END) AS premium_importacion2,
+          COALESCE(AVG(CASE WHEN precio_importacion_llegada1 > 0 THEN precio_importacion_llegada1 END), 0) AS precio_importacion_llegada1,
+          COALESCE(AVG(CASE WHEN precio_importacion_llegada2 > 0 THEN precio_importacion_llegada2 END), 0) AS precio_importacion_llegada2,
+          COALESCE(AVG(premium_importacion1), 0) AS premium_importacion1,
+          COALESCE(AVG(premium_importacion2), 0) AS premium_importacion2,
           MAX(Pais_Origen_Pulso_Vigas) AS Pais_Origen_Pulso_Vigas
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE anio_semana IN (SELECT semana FROM semanas_disponibles)
-          AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
           AND control IN (1, 6)  -- bloque transaccional (ver comentario en semanas_disponibles)
+          -- Se quita el filtro `SAFE_CAST(Tipo_Cambio) > 0` del WHERE para no eliminar
+          -- filas donde los índices internacionales existen pero TC aún no se ha poblado.
+          -- El filtro TC se mantiene en el CASE WHEN del AVG para limpiar valores ruido.
         GROUP BY anio_semana
       ),
       -- Todos los registros de las semanas disponibles, sin filtrar por Tipo_Cambio
@@ -187,8 +200,13 @@ view: cuadrante_izquierdo_superior {
           ref.pais,
           ref.producto_tipo,
           ref.precio_usd,
-          CASE WHEN p.Tipo_Cambio IS NOT NULL AND ref.precio_usd IS NOT NULL
-            THEN p.Tipo_Cambio * ref.precio_usd ELSE NULL END AS precio_mxn
+          -- precio_mxn: TC * precio_usd. Si falta TC o precio_usd, se usa 0 para preservar la fila
+          -- (regla de negocio: mostrar 6 semanas cronologicas aunque falten indices).
+          COALESCE(
+            CASE WHEN p.Tipo_Cambio IS NOT NULL AND ref.precio_usd IS NOT NULL AND ref.precio_usd > 0
+              THEN p.Tipo_Cambio * ref.precio_usd END,
+            0
+          ) AS precio_mxn
         FROM precios_internacionales p
         CROSS JOIN UNNEST([
           STRUCT('Turkey - Rebar FOB' AS referencia_nombre, 'Turkey' AS pais, 'Rebar' AS producto_tipo, p.precio_usd_turkey_rebar AS precio_usd),
@@ -201,7 +219,8 @@ view: cuadrante_izquierdo_superior {
           STRUCT('Sur Europa - Índice AMM' AS referencia_nombre, 'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_europa AS precio_usd),
           STRUCT('Sudeste Asiático - Índice AMM' AS referencia_nombre, 'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_asia AS precio_usd)
         ]) AS ref
-        WHERE ref.precio_usd IS NOT NULL AND ref.precio_usd > 0
+        -- Nota: ya no se filtra ref.precio_usd > 0 para preservar las 6 semanas cronológicas.
+        -- Las referencias sin dato aparecen con precio_mxn = 0 (ver COALESCE arriba).
       ),
 
       precios_con_calculos AS (
@@ -246,8 +265,8 @@ view: cuadrante_izquierdo_superior {
       -- por lo que se mantiene como complementaria. Uso: >1 indica precio caída por encima del pulso.
       SAFE_DIVIDE(precio_caida_pedidos, precio_pulso) AS indice_precio
       FROM precios_unificados
-      WHERE precio_mxn IS NOT NULL
-      AND precio_mxn > 0
+      -- Ya no se filtra precio_mxn > 0 para preservar 6 semanas cronológicas.
+      -- Las semanas sin índices internacionales aparecerán con precio_mxn = 0.
       )
 
       SELECT
@@ -277,12 +296,12 @@ view: cuadrante_izquierdo_superior {
       precio_senial_calculado,
       importe_senial_ponderado,
       toneladas_caida_de_pedidos,
-      -- Variación porcentual semanal del precio de importación en MXN
-      ROUND(SAFE_DIVIDE((precio_mxn - precio_importacion_semana_anterior), precio_importacion_semana_anterior) * 100, 2) AS variacion_importacion_pct,
+      -- Variación porcentual semanal del precio de importación en MXN (0 si no hay dato previo)
+      COALESCE(ROUND(SAFE_DIVIDE((precio_mxn - precio_importacion_semana_anterior), precio_importacion_semana_anterior) * 100, 2), 0) AS variacion_importacion_pct,
       -- Variación porcentual semanal del precio de caída (D9)
-      ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_caida_semana_anterior), precio_caida_semana_anterior) * 100, 2) AS variacion_caida_pct,
+      COALESCE(ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_caida_semana_anterior), precio_caida_semana_anterior) * 100, 2), 0) AS variacion_caida_pct,
       -- Señal porcentual: desvío entre precio de caída real vs precio señal objetivo (D5 / KPI #1)
-      ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_senial_calculado), precio_senial_calculado) * 100, 2) AS senal_porcentual,
+      COALESCE(ROUND(SAFE_DIVIDE((precio_caida_mxn - precio_senial_calculado), precio_senial_calculado) * 100, 2), 0) AS senal_porcentual,
       indice_precio,
       Tipo_Cambio,
       precio_pulso,
@@ -594,7 +613,6 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
-
   }
 
   set: detail {
