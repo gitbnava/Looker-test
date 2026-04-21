@@ -5,7 +5,13 @@ view: cuadrante_izquierdo_superior {
       -- Alineado a definiciones D5, D9, D11 y KPIs #1, #2-23
       WITH
       -- Últimas 6 semanas con datos reales; filtro 90 días para partition pruning
-      -- Solo se consideran registros del bloque transaccional (control=8)
+      -- Bloque transaccional del mart (control IN (1, 6)):
+      --   control=1: transacciones facturación/entrega principales (~145k filas/90d, con TC, tons_caida, imp_entrega)
+      --   control=6: flujos complementarios con imp_entrega capturado (~41k filas/90d, con TC e imp_entrega)
+      -- Excluidos por diagnóstico BigQuery:
+      --   control=101: mayor volumen pero sin tons_caida ni imp_entrega
+      --   control=103: bloque finanzas (sin campos transaccionales)
+      --   control=8: plantilla maestra/datos atípicos sin TC ni imp_entrega reales
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
@@ -13,7 +19,7 @@ view: cuadrante_izquierdo_superior {
           AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
           AND fecha <= CURRENT_DATE()
           AND anio_semana IS NOT NULL
-          AND control = 8
+          AND control IN (1, 6)
         ORDER BY anio_semana DESC
         LIMIT 6
       ),
@@ -52,7 +58,7 @@ view: cuadrante_izquierdo_superior {
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND SAFE_CAST(Tipo_Cambio AS FLOAT64) > 0
-          AND control = 8
+          AND control IN (1, 6)  -- bloque transaccional (ver comentario en semanas_disponibles)
         GROUP BY anio_semana
       ),
       -- Todos los registros de las semanas disponibles, sin filtrar por Tipo_Cambio
@@ -145,7 +151,7 @@ view: cuadrante_izquierdo_superior {
         WHERE v.fecha IS NOT NULL
           AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
           AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
-          AND v.control = 8
+          AND v.control IN (1, 6)  -- bloque transaccional (ver comentario en semanas_disponibles)
       ),
       -- Una sola pasada con UNNEST en lugar de 9 UNION ALL (menos lecturas del CTE, menos shuffle)
       precios_unificados AS (
