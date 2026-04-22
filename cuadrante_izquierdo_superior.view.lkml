@@ -22,7 +22,7 @@ view: cuadrante_izquierdo_superior {
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE fecha IS NOT NULL
-          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 120 DAY)
+          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
           AND fecha <= CURRENT_DATE()
           AND anio_semana IS NOT NULL
           AND control IN (1, 6)
