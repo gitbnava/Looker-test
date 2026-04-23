@@ -181,6 +181,32 @@ view: tablero_direccion_gii {
   }
 
   # ============================================
+  # DIMENSIONES HIDDEN (periodo actual y ajuste por avance)
+  # ============================================
+
+  dimension: es_periodo_actual {
+    type: yesno
+    sql: FORMAT_DATE('%Y%m', ${TABLE}.fecha_contable) = FORMAT_DATE('%Y%m', CURRENT_DATE()) ;;
+    hidden: yes
+    description: "Flag: la fila pertenece al periodo (mes) actual. Uso interno para filtro default del dashboard."
+  }
+
+  dimension: avance_periodo_actual {
+    type: number
+    sql:
+      CASE
+        WHEN FORMAT_DATE('%Y%m', ${TABLE}.fecha_contable) = FORMAT_DATE('%Y%m', CURRENT_DATE())
+        THEN SAFE_DIVIDE(
+          EXTRACT(DAY FROM CURRENT_DATE()),
+          EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE(), MONTH))
+        )
+        ELSE 1.0
+      END ;;
+    hidden: yes
+    description: "Proporción de días transcurridos del periodo actual (días_hoy / días_totales_mes). 1.0 para meses cerrados. Usado por pct_pvo y pct_bp."
+  }
+
+  # ============================================
   # MEDIDAS AUXILIARES (sumas filtradas por control, para fórmulas compuestas)
   # ============================================
 
@@ -343,10 +369,10 @@ view: tablero_direccion_gii {
 
   measure: pct_pvo {
     type: number
-    sql: 100.0 * ${fact_acum} / NULLIF(${pvo}, 0) ;;
+    sql: 100.0 * ${fact_acum} / NULLIF(${pvo} * AVG(${avance_periodo_actual}), 0) ;;
     value_format: "#,##0.00\"%\""
     label: "% PVO"
-    description: "% PVO (Fact Acum / PVO × 100)."
+    description: "% PVO ajustado por avance del periodo. Fórmula: fact_acum / (pvo × días_transcurridos/días_totales) × 100. Para meses cerrados el ajuste es 1.0 (sin modificación)."
     group_label: "Ventas"
     drill_fields: [detail_jerarquico*]
   }
@@ -363,10 +389,10 @@ view: tablero_direccion_gii {
 
   measure: pct_bp {
     type: number
-    sql: 100.0 * ${fact_acum} / NULLIF(${bp}, 0) ;;
+    sql: 100.0 * ${fact_acum} / NULLIF(${bp} * AVG(${avance_periodo_actual}), 0) ;;
     value_format: "#,##0.00\"%\""
     label: "% BP"
-    description: "% BP (Fact Acum / BP × 100)."
+    description: "% BP ajustado por avance del periodo. Fórmula: fact_acum / (bp × días_transcurridos/días_totales) × 100. Para meses cerrados el ajuste es 1.0 (sin modificación)."
     group_label: "Ventas"
     drill_fields: [detail_jerarquico*]
   }
