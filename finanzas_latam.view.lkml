@@ -43,13 +43,12 @@ view: tablero_direccion_gii {
         -- Bloque MERCADO (columnas nativas del mart)
         v.edm_total,
         v.edm_distribuido,
-        v.vnp_total,
-        v.vnp_distribuido,
-        v.inercial_cna,
-        v.inercial_cna_distribuido,
+        v.cna,
+        v.cna_dist,
         v.inercial_total_tons_facturadas,
         v.inercial_total_tons_bs,
         v.promedio_cna_anio_actual,
+        v.promedio_tons_3m,
         v.toneladas_inerciales
       FROM `datahub-deacero.mart_comercial.ven_mart_comercial` AS v
       WHERE v.nom_direccion IS NOT NULL
@@ -455,40 +454,20 @@ view: tablero_direccion_gii {
 
   measure: cna_total {
     type: sum
-    sql: ${TABLE}.vnp_total ;;
+    sql: ${TABLE}.cna ;;
     value_format: "#,##0"
     label: "CNA"
-    description: "Consumo Nacional Aparente (vnp_total). Blueprint ID 66."
+    description: "Consumo Nacional Aparente (columna nativa `cna` del mart). Blueprint ID 66."
     group_label: "Mercado"
     drill_fields: [detail_jerarquico*]
   }
 
   measure: cna_distribuido {
     type: sum
-    sql: ${TABLE}.vnp_distribuido ;;
+    sql: ${TABLE}.cna_dist ;;
     value_format: "#,##0"
     label: "CNA Distribuido"
-    description: "CNA distribuido por cliente (vnp_distribuido). Solo aplica a Varilla y Perfiles."
-    group_label: "Mercado"
-    drill_fields: [detail_jerarquico*]
-  }
-
-  measure: inercial_cna {
-    type: sum
-    sql: ${TABLE}.inercial_cna ;;
-    value_format: "#,##0"
-    label: "Inercial CNA"
-    description: "Inercial de Clientes de Nuevas Adquisiciones."
-    group_label: "Mercado"
-    drill_fields: [detail_jerarquico*]
-  }
-
-  measure: inercial_cna_distribuido {
-    type: sum
-    sql: ${TABLE}.inercial_cna_distribuido ;;
-    value_format: "#,##0"
-    label: "Inercial CNA Distribuido"
-    description: "Inercial CNA distribuido por cliente. Solo aplica a Varilla y Perfiles."
+    description: "CNA distribuido por cliente (columna nativa `cna_dist` del mart). Solo aplica a Varilla y Perfiles."
     group_label: "Mercado"
     drill_fields: [detail_jerarquico*]
   }
@@ -519,6 +498,16 @@ view: tablero_direccion_gii {
     value_format: "#,##0"
     label: "Promedio CNA Año Actual"
     description: "Promedio mensual toneladas CNA año actual."
+    group_label: "Mercado"
+    drill_fields: [detail_jerarquico*]
+  }
+
+  measure: promedio_tons_3m {
+    type: sum
+    sql: ${TABLE}.promedio_tons_3m ;;
+    value_format: "#,##0"
+    label: "Promedio Ton 3M"
+    description: "Promedio de toneladas en los últimos 3 meses (promedio móvil). Columna nativa del mart."
     group_label: "Mercado"
     drill_fields: [detail_jerarquico*]
   }
@@ -609,8 +598,7 @@ view: tablero_direccion_gii {
       edm_distribuido,
       cna_total,
       cna_distribuido,
-      inercial_cna,
-      inercial_cna_distribuido,
+      promedio_tons_3m,
       inercial_total_tons_facturadas,
       inercial_total_tons_bs,
       promedio_cna_anio_actual,
