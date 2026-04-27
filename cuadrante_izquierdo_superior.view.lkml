@@ -3,31 +3,39 @@ view: cuadrante_izquierdo_superior {
     sql:
       -- Optimizado: filtro 90 días, una sola pasada UNNEST en lugar de 9 UNION ALL
       -- Alineado a definiciones D5, D9, D11 y KPIs #1, #2-23
-      WITH
-      -- Últimas 6 semanas cronológicas; filtro 90 días para partition pruning
-      -- Bloque transaccional del mart (control IN (1, 6)):
-      --   control=1: transacciones facturación/entrega principales (~145k filas/90d, con TC, tons_caida, imp_entrega)
-      --   control=6: flujos complementarios con imp_entrega capturado (~41k filas/90d, con TC e imp_entrega)
-      -- Excluidos por diagnóstico BigQuery:
-      --   control=101: mayor volumen pero sin tons_caida ni imp_entrega
-      --   control=103: bloque finanzas (sin campos transaccionales)
-      --   control=8: plantilla maestra/datos atípicos sin TC ni imp_entrega reales
       --
-      -- REGLA DE NEGOCIO: se toman las últimas 6 semanas CRONOLÓGICAS, independientemente
-      -- de si tienen datos de índices internacionales. Los índices internacionales pueden
-      -- capturarse con lag (2-4 semanas), por lo que algunas semanas recientes tendrán
-      -- precios = 0 en lugar de valor. Esto es intencional: se prefiere omitir "falta de dato"
-      -- como 0 antes que sesgar la selección de semanas por disponibilidad de índices.
+      -- VENTANA TEMPORAL DINÁMICA (Liquid):
+      --   - Sin filtro fecha_contable del dashboard: últimas 6 semanas cronológicas (90d partition prune).
+      --   - Con filtro fecha_contable: se respeta el rango del usuario; se omite el LIMIT 6
+      --     y se inyecta un condition de Liquid sobre la columna `fecha` particionada
+      --     para mantener partition pruning.
+      {% assign tiene_filtro = _filters['cuadrante_izquierdo_superior.fecha_contable']._parameter_value %}
+      WITH
+      -- Bloque transaccional del mart (control IN (1, 6)):
+      --   control=1: transacciones facturación/entrega principales
+      --   control=6: flujos complementarios con imp_entrega capturado
+      -- Excluidos: control=101 (sin tons_caida ni imp_entrega), control=103 (finanzas),
+      -- control=8 (plantilla maestra sin TC ni imp_entrega reales).
+      --
+      -- REGLA DE NEGOCIO: sin filtro del usuario, se toman las últimas 6 semanas CRONOLÓGICAS,
+      -- independientemente de si tienen datos de índices internacionales. Los índices internacionales
+      -- pueden capturarse con lag (2-4 semanas), por lo que algunas semanas recientes tendrán
+      -- precios = 0 en lugar de valor. Esto es intencional.
       semanas_disponibles AS (
         SELECT DISTINCT anio_semana AS semana
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE fecha IS NOT NULL
-          AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-          AND fecha <= CURRENT_DATE()
           AND anio_semana IS NOT NULL
           AND control IN (1, 6)
+          AND {% condition fecha_contable %} fecha {% endcondition %}
+          {% if tiene_filtro == nil or tiene_filtro == "" %}
+            AND fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+            AND fecha <= CURRENT_DATE()
+          {% endif %}
         ORDER BY anio_semana DESC
-        LIMIT 6
+        {% if tiene_filtro == nil or tiene_filtro == "" %}
+          LIMIT 6
+        {% endif %}
       ),
       -- Precios de importación agregados por semana (de cualquier fila con esos campos)
       -- Desacoplado de GE para que funcione con cualquier filtro de producto
@@ -162,9 +170,12 @@ view: cuadrante_izquierdo_superior {
         -- Tipo_Cambio para la semana. precio_mxn será NULL pero precio_caida_pedidos se preserva.
         LEFT JOIN ref_por_semana r ON v.anio_semana = r.semana
         WHERE v.fecha IS NOT NULL
-          AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
           AND v.anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND v.control IN (1, 6)  -- bloque transaccional (ver comentario en semanas_disponibles)
+          AND {% condition fecha_contable %} v.fecha {% endcondition %}
+          {% if tiene_filtro == nil or tiene_filtro == "" %}
+            AND v.fecha >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+          {% endif %}
       ),
       -- Una sola pasada con UNNEST en lugar de 9 UNION ALL (menos lecturas del CTE, menos shuffle)
       precios_unificados AS (
@@ -613,6 +624,7 @@ view: cuadrante_izquierdo_superior {
 
   set: filtros {
     fields: [nom_cliente, zona, nom_estado, nom_canal, nom_subdireccion, nom_gerencia, nom_zona, nom_grupo_estadistico1, nom_grupo_estadistico2, nom_grupo_estadistico3, nom_grupo_estadistico4]
+
   }
 
   set: detail {
