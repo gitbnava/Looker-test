@@ -55,15 +55,17 @@ view: cuadrante_izquierdo_superior {
         SELECT
           anio_semana AS semana,
           AVG(CASE WHEN SAFE_CAST(Tipo_Cambio AS FLOAT64) > 5 THEN SAFE_CAST(Tipo_Cambio AS FLOAT64) END) AS Tipo_Cambio,
-          COALESCE(AVG(CASE WHEN Rebar_FOB_Turkey > 0 THEN Rebar_FOB_Turkey END), 0) AS precio_usd_turkey_rebar,
-          COALESCE(AVG(CASE WHEN Rebar_FOB_Spain > 0 THEN Rebar_FOB_Spain END), 0) AS precio_usd_spain_rebar,
-          COALESCE(AVG(CASE WHEN Precio_Varilla_Malasia > 0 THEN Precio_Varilla_Malasia END), 0) AS precio_usd_malasia_varilla,
-          COALESCE(AVG(CASE WHEN Angulo_Comercial_Turkey > 0 THEN Angulo_Comercial_Turkey END), 0) AS precio_usd_turkey_angulo,
-          COALESCE(AVG(CASE WHEN Angulo_Comercial_China > 0 THEN Angulo_Comercial_China END), 0) AS precio_usd_china_angulo,
-          COALESCE(AVG(CASE WHEN Vigas_IPN_Turkey > 0 THEN Vigas_IPN_Turkey END), 0) AS precio_usd_turkey_vigas,
-          COALESCE(AVG(CASE WHEN Pulso_Vigas_Int > 0 THEN Pulso_Vigas_Int END), 0) AS precio_usd_pulso_vigas,
-          COALESCE(AVG(CASE WHEN Indice_AMM_Sur_Europa > 0 THEN Indice_AMM_Sur_Europa END), 0) AS precio_usd_amm_europa,
-          COALESCE(AVG(CASE WHEN indice_AMM_Sudeste_Asiatico > 0 THEN indice_AMM_Sudeste_Asiatico END), 0) AS precio_usd_amm_asia,
+          -- Cotizaciones de importación por país en MXN (modelo nuevo del mart, ya pre-convertido).
+          -- Reemplaza el bloque legado de índices internacionales (Rebar_FOB_*, Indice_AMM_*, etc.).
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_china_mxn > 0 THEN precio_importacion_cotizacion_china_mxn END), 0) AS cotiz_china_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_malasia_mxn > 0 THEN precio_importacion_cotizacion_malasia_mxn END), 0) AS cotiz_malasia_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_spain_mxn > 0 THEN precio_importacion_cotizacion_spain_mxn END), 0) AS cotiz_spain_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_italia_mxn > 0 THEN precio_importacion_cotizacion_italia_mxn END), 0) AS cotiz_italia_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_japon_mxn > 0 THEN precio_importacion_cotizacion_japon_mxn END), 0) AS cotiz_japon_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_luxemburgo_mxn > 0 THEN precio_importacion_cotizacion_luxemburgo_mxn END), 0) AS cotiz_luxemburgo_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_sudeste_asiatico_mxn > 0 THEN precio_importacion_cotizacion_sudeste_asiatico_mxn END), 0) AS cotiz_sudeste_asiatico_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_turquia_mxn > 0 THEN precio_importacion_cotizacion_turquia_mxn END), 0) AS cotiz_turquia_mxn,
+          COALESCE(AVG(CASE WHEN precio_importacion_cotizacion_vietnam_mxn > 0 THEN precio_importacion_cotizacion_vietnam_mxn END), 0) AS cotiz_vietnam_mxn,
           -- Señales de precio por grupo estadístico (KPI #1 / D5)
           COALESCE(AVG(CASE WHEN Senal_Varilla > 0 THEN Senal_Varilla END), 0) AS senal_varilla,
           COALESCE(AVG(CASE WHEN Senal_Alambron > 0 THEN Senal_Alambron END), 0) AS senal_alambron,
@@ -72,8 +74,7 @@ view: cuadrante_izquierdo_superior {
           COALESCE(AVG(CASE WHEN precio_importacion_llegada1 > 0 THEN precio_importacion_llegada1 END), 0) AS precio_importacion_llegada1,
           COALESCE(AVG(CASE WHEN precio_importacion_llegada2 > 0 THEN precio_importacion_llegada2 END), 0) AS precio_importacion_llegada2,
           COALESCE(AVG(premium_importacion1), 0) AS premium_importacion1,
-          COALESCE(AVG(premium_importacion2), 0) AS premium_importacion2,
-          MAX(Pais_Origen_Pulso_Vigas) AS Pais_Origen_Pulso_Vigas
+          COALESCE(AVG(premium_importacion2), 0) AS premium_importacion2
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial`
         WHERE anio_semana IN (SELECT semana FROM semanas_disponibles)
           AND control IN (1, 6)  -- bloque transaccional (ver comentario en semanas_disponibles)
@@ -150,21 +151,20 @@ view: cuadrante_izquierdo_superior {
           END AS importe_senial_ponderado,
           SAFE_CAST(v.toneladas_caida_de_pedidos AS FLOAT64) AS toneladas_caida_de_pedidos,
           SAFE_CAST(v.precio_pulso AS FLOAT64) AS precio_pulso,
-          r.precio_usd_turkey_rebar,
-          r.precio_usd_spain_rebar,
-          r.precio_usd_malasia_varilla,
-          r.precio_usd_turkey_angulo,
-          r.precio_usd_china_angulo,
-          r.precio_usd_turkey_vigas,
-          r.precio_usd_pulso_vigas,
-          r.precio_usd_amm_europa,
-          r.precio_usd_amm_asia,
+          r.cotiz_china_mxn,
+          r.cotiz_malasia_mxn,
+          r.cotiz_spain_mxn,
+          r.cotiz_italia_mxn,
+          r.cotiz_japon_mxn,
+          r.cotiz_luxemburgo_mxn,
+          r.cotiz_sudeste_asiatico_mxn,
+          r.cotiz_turquia_mxn,
+          r.cotiz_vietnam_mxn,
           -- Precios CIF de llegada y premiums (KPIs #4-7 / D4)
           r.precio_importacion_llegada1,
           r.precio_importacion_llegada2,
           r.premium_importacion1,
-          r.premium_importacion2,
-          r.Pais_Origen_Pulso_Vigas
+          r.premium_importacion2
         FROM `datahub-deacero.mart_comercial.ven_mart_comercial` v
         -- LEFT JOIN permite preservar filas transaccionales aunque ref_por_semana no tenga
         -- Tipo_Cambio para la semana. precio_mxn será NULL pero precio_caida_pedidos se preserva.
@@ -207,31 +207,23 @@ view: cuadrante_izquierdo_superior {
           p.precio_importacion_llegada2,
           p.premium_importacion1,
           p.premium_importacion2,
-          ref.referencia_nombre,
           ref.pais,
-          ref.producto_tipo,
-          ref.precio_usd,
-          -- precio_mxn: TC * precio_usd. Si falta TC o precio_usd, se usa 0 para preservar la fila
-          -- (regla de negocio: mostrar 6 semanas cronologicas aunque falten indices).
-          COALESCE(
-            CASE WHEN p.Tipo_Cambio IS NOT NULL AND ref.precio_usd IS NOT NULL AND ref.precio_usd > 0
-              THEN p.Tipo_Cambio * ref.precio_usd END,
-            0
-          ) AS precio_mxn
+          -- precio_mxn: cotización por país en MXN, ya pre-calculada en el mart
+          -- (validado V7: ratio_mxn_usd coincide con tipo_cambio_importacion).
+          -- Las semanas/países sin dato aparecen con precio_mxn = 0 por el COALESCE en ref_por_semana.
+          ref.precio_mxn
         FROM precios_internacionales p
         CROSS JOIN UNNEST([
-          STRUCT('Turkey - Rebar FOB' AS referencia_nombre, 'Turkey' AS pais, 'Rebar' AS producto_tipo, p.precio_usd_turkey_rebar AS precio_usd),
-          STRUCT('Spain - Rebar FOB' AS referencia_nombre, 'Spain' AS pais, 'Rebar' AS producto_tipo, p.precio_usd_spain_rebar AS precio_usd),
-          STRUCT('Malasia - Varilla' AS referencia_nombre, 'Malasia' AS pais, 'Varilla' AS producto_tipo, p.precio_usd_malasia_varilla AS precio_usd),
-          STRUCT('Turkey - Ángulo Comercial' AS referencia_nombre, 'Turkey' AS pais, 'Ángulo' AS producto_tipo, p.precio_usd_turkey_angulo AS precio_usd),
-          STRUCT('China - Ángulo Comercial' AS referencia_nombre, 'China' AS pais, 'Ángulo' AS producto_tipo, p.precio_usd_china_angulo AS precio_usd),
-          STRUCT('Turkey - Vigas IPN' AS referencia_nombre, 'Turkey' AS pais, 'Vigas IPN' AS producto_tipo, p.precio_usd_turkey_vigas AS precio_usd),
-          STRUCT(CONCAT(IFNULL(p.Pais_Origen_Pulso_Vigas, 'Desconocido'), ' - Pulso Vigas') AS referencia_nombre, IFNULL(p.Pais_Origen_Pulso_Vigas, 'Desconocido') AS pais, 'Pulso Vigas' AS producto_tipo, p.precio_usd_pulso_vigas AS precio_usd),
-          STRUCT('Sur Europa - Índice AMM' AS referencia_nombre, 'Sur Europa' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_europa AS precio_usd),
-          STRUCT('Sudeste Asiático - Índice AMM' AS referencia_nombre, 'Sudeste Asiático' AS pais, 'Índice AMM' AS producto_tipo, p.precio_usd_amm_asia AS precio_usd)
+          STRUCT('China' AS pais, p.cotiz_china_mxn AS precio_mxn),
+          STRUCT('Malasia' AS pais, p.cotiz_malasia_mxn AS precio_mxn),
+          STRUCT('Spain' AS pais, p.cotiz_spain_mxn AS precio_mxn),
+          STRUCT('Italia' AS pais, p.cotiz_italia_mxn AS precio_mxn),
+          STRUCT('Japón' AS pais, p.cotiz_japon_mxn AS precio_mxn),
+          STRUCT('Luxemburgo' AS pais, p.cotiz_luxemburgo_mxn AS precio_mxn),
+          STRUCT('Sudeste Asiático' AS pais, p.cotiz_sudeste_asiatico_mxn AS precio_mxn),
+          STRUCT('Turquía' AS pais, p.cotiz_turquia_mxn AS precio_mxn),
+          STRUCT('Vietnam' AS pais, p.cotiz_vietnam_mxn AS precio_mxn)
         ]) AS ref
-        -- Nota: ya no se filtra ref.precio_usd > 0 para preservar las 6 semanas cronológicas.
-        -- Las referencias sin dato aparecen con precio_mxn = 0 (ver COALESCE arriba).
       ),
 
       precios_con_calculos AS (
@@ -253,10 +245,7 @@ view: cuadrante_izquierdo_superior {
       zona,
       nom_estado,
       nom_canal,
-      referencia_nombre,
       pais,
-      producto_tipo,
-      precio_usd,
       precio_mxn,
       Tipo_Cambio,
       precio_caida_pedidos AS precio_caida_mxn,
@@ -268,8 +257,8 @@ view: cuadrante_izquierdo_superior {
       precio_importacion_llegada2,
       premium_importacion1,
       premium_importacion2,
-      LAG(precio_mxn) OVER (PARTITION BY referencia_nombre ORDER BY semana ASC, fecha_contable ASC) AS precio_importacion_semana_anterior,
-      LAG(precio_caida_pedidos) OVER (PARTITION BY referencia_nombre ORDER BY semana ASC, fecha_contable ASC) AS precio_caida_semana_anterior,
+      LAG(precio_mxn) OVER (PARTITION BY pais ORDER BY semana ASC, fecha_contable ASC) AS precio_importacion_semana_anterior,
+      LAG(precio_caida_pedidos) OVER (PARTITION BY pais ORDER BY semana ASC, fecha_contable ASC) AS precio_caida_semana_anterior,
       -- indice_precio: relación precio caída / pulso.
       -- Métrica derivada construida en este LookML como apoyo visual del cuadrante.
       -- No aparece explícitamente en el catálogo oficial (kpis_sin_documentar.csv, D1-D19),
@@ -281,9 +270,7 @@ view: cuadrante_izquierdo_superior {
       )
 
       SELECT
-      referencia_nombre,
       pais,
-      producto_tipo,
       semana,
       mes,
       anio,
@@ -301,7 +288,6 @@ view: cuadrante_izquierdo_superior {
       nom_estado,
       nom_canal,
       fecha_contable,
-      precio_usd,
       precio_mxn AS precio_importacion_mxn,
       precio_caida_mxn,
       precio_senial_calculado,
@@ -328,22 +314,10 @@ view: cuadrante_izquierdo_superior {
   # DIMENSIONS (Campos para agrupar/filtrar)
   # ============================================
 
-  dimension: referencia_nombre {
-    type: string
-    sql: ${TABLE}.referencia_nombre ;;
-    description: "Nombre de la referencia de precio internacional"
-  }
-
   dimension: pais {
     type: string
     sql: ${TABLE}.pais ;;
-    description: "País de origen del precio de referencia"
-  }
-
-  dimension: producto_tipo {
-    type: string
-    sql: ${TABLE}.producto_tipo ;;
-    description: "Tipo de producto (Rebar, Varilla, Ángulo, etc.)"
+    description: "País de origen de la cotización de importación (China, Malasia, Spain, Italia, Japón, Luxemburgo, Sudeste Asiático, Turquía, Vietnam)"
   }
 
   dimension: semana_sort {
@@ -473,18 +447,11 @@ view: cuadrante_izquierdo_superior {
     drill_fields: [detail*]
   }
 
-  measure: precio_usd {
-    type: max
-    sql: ${TABLE}.precio_usd ;;
-    value_format_name: usd
-    description: "Precio en USD"
-  }
-
   measure: precio_importacion_mxn {
     type: max
     sql: ${TABLE}.precio_importacion_mxn ;;
     value_format_name: usd
-    description: "Precio de importación convertido a MXN (precio_usd * Tipo_Cambio)"
+    description: "Precio cotización de importación por país en MXN (lectura directa del mart, ya pre-convertido)"
   }
 
   measure: precio_caida_mxn {
@@ -629,9 +596,7 @@ view: cuadrante_izquierdo_superior {
 
   set: detail {
     fields: [
-      referencia_nombre,
       pais,
-      producto_tipo,
       semana,
       mes,
       anio,
@@ -649,7 +614,6 @@ view: cuadrante_izquierdo_superior {
       nom_estado,
       nom_canal,
       fecha_contable,
-      precio_usd,
       precio_importacion_mxn,
       precio_caida_mxn,
       precio_caida_ponderado,
