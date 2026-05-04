@@ -9,25 +9,29 @@
   - name: ''
     label: ''
   elements:
-  - title: ''
-    name: ''
+  - title: Finanzas Latam
+    name: Finanzas Latam
     model: finanzas_latam
-    explore: tablero_direccion_gii
-    type: marketplace_viz_report_table::report_table-marketplace
-    fields: [tablero_direccion_gii.nom_direccion, tablero_direccion_gii.gii, tablero_direccion_gii.pedidos_ton,
-      tablero_direccion_gii.deuda_pm, tablero_direccion_gii.deuda_total, tablero_direccion_gii.deuda_libre,
-      tablero_direccion_gii.deuda_autofleteo, tablero_direccion_gii.deuda_mes_resto,
-      tablero_direccion_gii.deuda_mes_siguiente, tablero_direccion_gii.fact_ayer,
-      tablero_direccion_gii.fact_acum, tablero_direccion_gii.fact_pm, tablero_direccion_gii.pvo,
-      tablero_direccion_gii.pct_pvo, tablero_direccion_gii.bp, tablero_direccion_gii.pct_bp]
-    sorts: [tablero_direccion_gii.pedidos_ton desc 0]
+    explore: tablero_direccion_gii_v2
+    type: wc_price_analysis_prod::deacero-tree-table
+    fields: [tablero_direccion_gii_v2.nom_direccion, tablero_direccion_gii_v2.nom_subdireccion,
+      tablero_direccion_gii_v2.nom_gerencia, tablero_direccion_gii_v2.nom_grupo_estadistico1,
+      tablero_direccion_gii_v2.nom_grupo_estadistico2, tablero_direccion_gii_v2.nom_grupo_estadistico3,
+      tablero_direccion_gii_v2.pedidos_ton, tablero_direccion_gii_v2.precio_deuda_total,
+      tablero_direccion_gii_v2.deuda_total, tablero_direccion_gii_v2.deuda_libre,
+      tablero_direccion_gii_v2.deuda_autofleteo, tablero_direccion_gii_v2.deuda_mes_resto,
+      tablero_direccion_gii_v2.deuda_mes_siguiente, tablero_direccion_gii_v2.fact_ayer,
+      tablero_direccion_gii_v2.fact_acum, tablero_direccion_gii_v2.fact_acum_importe,
+      tablero_direccion_gii_v2.precio_destino_mn, tablero_direccion_gii_v2.pvo, tablero_direccion_gii_v2.pct_pvo,
+      tablero_direccion_gii_v2.bp, tablero_direccion_gii_v2.pct_bp, tablero_direccion_gii_v2.fact_acum_2026,
+      tablero_direccion_gii_v2.fact_acum_2025]
+    sorts: [tablero_direccion_gii_v2.pedidos_ton desc 0]
     limit: 500
     column_limit: 50
     hidden_fields: []
     hidden_points_if_no: []
     series_labels: {}
     show_view_names: false
-    hidden_pivots: {}
     x_axis_gridlines: false
     y_axis_gridlines: true
     show_y_axis_labels: true
@@ -55,19 +59,22 @@
     show_silhouette: false
     totals_color: "#808080"
     defaults_version: 0
-    show_row_numbers: true
-    transpose: false
-    truncate_text: true
-    hide_totals: false
-    hide_row_totals: false
-    size_to_fit: true
-    table_theme: white
-    enable_conditional_formatting: false
-    header_text_alignment: left
-    header_font_size: 12
-    rows_font_size: 12
-    conditional_formatting_include_totals: false
-    conditional_formatting_include_nulls: false
+    defaultExpandDepth: 1
+    showSubtotals: true
+    showGrandTotal: true
+    showRowCounts: true
+    indentSize: 20
+    respectLookmlFormat: true
+    numberDecimals: 2
+    headerBackground: "#f5f5f5"
+    groupRowBackground: "#fafafa"
+    fontSize: '12'
+    rowStriping: true
+    aggModeField: ''
+    aggWeightField: ''
+    color_total: "#1A73E8"
+    color_cargo: "#34A853"
+    color_descuento: "#EA4335"
     theme: traditional
     customTheme: ''
     layout: fixed
@@ -91,126 +98,16 @@
     indexColumn: false
     transposeTable: false
     columnOrder: {}
-    listen:
-      Nom Grupo Estadistico4: tablero_direccion_gii.nom_grupo_estadistico4
-      Nom Grupo Estadistico2: tablero_direccion_gii.nom_grupo_estadistico2
-      Nom Grupo Estadistico3: tablero_direccion_gii.nom_grupo_estadistico3
-      Nom Grupo Estadistico1: tablero_direccion_gii.nom_grupo_estadistico1
-      Nom Estado: tablero_direccion_gii.nom_estado
-      Nom Subdireccion: tablero_direccion_gii.nom_subdireccion
-      Nom Zona: tablero_direccion_gii.nom_zona
-      Nom Cliente: tablero_direccion_gii.nom_cliente
-      Nombre Periodo Mostrar: tablero_direccion_gii.nombre_periodo_mostrar
-      Nom Direccion: tablero_direccion_gii.nom_direccion
+    signal_enabled: false
+    tile_title: ''
+    auto_hide_empty: true
+    agg_type__tablero_direccion_gii_v2_pedidos_ton: sum
+    agg_weight__tablero_direccion_gii_v2_pedidos_ton: ''
+    listen: {}
     row: 0
     col: 0
     width: 24
-    height: 9
-    tab_name: ''
-  - title: ''
-    name: " (2)"
-    model: finanzas_latam
-    explore: tablero_direccion_gii
-    type: marketplace_viz_report_table::report_table-marketplace
-    fields: [tablero_direccion_gii.nom_direccion, tablero_direccion_gii.gii, tablero_direccion_gii.fact_acum_2023,
-      tablero_direccion_gii.fact_acum_2024, tablero_direccion_gii.fact_acum_2025]
-    sorts: [tablero_direccion_gii.fact_acum_2023 desc 0]
-    limit: 500
-    column_limit: 50
-    hidden_fields: []
-    hidden_points_if_no: []
-    series_labels: {}
-    show_view_names: false
-    show_row_numbers: true
-    transpose: false
-    truncate_text: true
-    hide_totals: false
-    hide_row_totals: false
-    size_to_fit: true
-    table_theme: white
-    limit_displayed_rows: false
-    enable_conditional_formatting: false
-    header_text_alignment: left
-    header_font_size: 12
-    rows_font_size: 12
-    conditional_formatting_include_totals: false
-    conditional_formatting_include_nulls: false
-    defaults_version: 0
-    active_tab: ''
-    tab_style: buttons
-    preserve_filters: true
-    theme: traditional
-    customTheme: ''
-    layout: fixed
-    minWidthForIndexColumns: true
-    headerFontSize: 12
-    bodyFontSize: 12
-    showTooltip: true
-    showHighlight: true
-    rowSubtotals: false
-    colSubtotals: false
-    spanRows: true
-    spanCols: true
-    calculateOthers: true
-    sortColumnsBy: pivots
-    useViewName: false
-    useHeadings: false
-    useShortName: false
-    useUnit: false
-    groupVarianceColumns: false
-    genericLabelForSubtotals: false
-    indexColumn: false
-    transposeTable: false
-    columnOrder: {}
-    label|tablero_direccion_gii.nom_direccion: Nom Direccion
-    heading|tablero_direccion_gii.nom_direccion: ''
-    hide|tablero_direccion_gii.nom_direccion: false
-    label|tablero_direccion_gii.gii: Gii
-    heading|tablero_direccion_gii.gii: ''
-    hide|tablero_direccion_gii.gii: false
-    subtotalDepth: '1'
-    label|tablero_direccion_gii.fact_acum_2023: Fact Acum 2023
-    heading|tablero_direccion_gii.fact_acum_2023: ''
-    style|tablero_direccion_gii.fact_acum_2023: normal
-    reportIn|tablero_direccion_gii.fact_acum_2023: '1'
-    unit|tablero_direccion_gii.fact_acum_2023: ''
-    comparison|tablero_direccion_gii.fact_acum_2023: no_variance
-    switch|tablero_direccion_gii.fact_acum_2023: false
-    var_num|tablero_direccion_gii.fact_acum_2023: true
-    var_pct|tablero_direccion_gii.fact_acum_2023: false
-    label|tablero_direccion_gii.fact_acum_2024: Fact Acum 2024
-    heading|tablero_direccion_gii.fact_acum_2024: ''
-    style|tablero_direccion_gii.fact_acum_2024: normal
-    reportIn|tablero_direccion_gii.fact_acum_2024: '1'
-    unit|tablero_direccion_gii.fact_acum_2024: ''
-    comparison|tablero_direccion_gii.fact_acum_2024: no_variance
-    switch|tablero_direccion_gii.fact_acum_2024: false
-    var_num|tablero_direccion_gii.fact_acum_2024: true
-    var_pct|tablero_direccion_gii.fact_acum_2024: false
-    label|tablero_direccion_gii.fact_acum_2025: Fact Acum 2025
-    heading|tablero_direccion_gii.fact_acum_2025: ''
-    style|tablero_direccion_gii.fact_acum_2025: normal
-    reportIn|tablero_direccion_gii.fact_acum_2025: '1'
-    unit|tablero_direccion_gii.fact_acum_2025: ''
-    comparison|tablero_direccion_gii.fact_acum_2025: no_variance
-    switch|tablero_direccion_gii.fact_acum_2025: false
-    var_num|tablero_direccion_gii.fact_acum_2025: true
-    var_pct|tablero_direccion_gii.fact_acum_2025: false
-    listen:
-      Nom Grupo Estadistico4: tablero_direccion_gii.nom_grupo_estadistico4
-      Nom Grupo Estadistico2: tablero_direccion_gii.nom_grupo_estadistico2
-      Nom Grupo Estadistico3: tablero_direccion_gii.nom_grupo_estadistico3
-      Nom Grupo Estadistico1: tablero_direccion_gii.nom_grupo_estadistico1
-      Nom Estado: tablero_direccion_gii.nom_estado
-      Nom Subdireccion: tablero_direccion_gii.nom_subdireccion
-      Nom Zona: tablero_direccion_gii.nom_zona
-      Nom Cliente: tablero_direccion_gii.nom_cliente
-      Nombre Periodo Mostrar: tablero_direccion_gii.nombre_periodo_mostrar
-      Nom Direccion: tablero_direccion_gii.nom_direccion
-    row: 9
-    col: 0
-    width: 24
-    height: 6
+    height: 28
     tab_name: ''
   filters:
   - name: Nom Direccion
